@@ -3,7 +3,7 @@ pub struct Renderer<'window> {
     pub surface_config: wgpu::SurfaceConfiguration,
     pub device: wgpu::Device,
     pub queue: wgpu::Queue,
-    render_pipeline: wgpu::RenderPipeline,
+    pub render_pipeline: wgpu::RenderPipeline,
 }
 
 impl<'window> Renderer<'window> {

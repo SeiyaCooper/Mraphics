@@ -6,3 +6,5 @@ authors = ["SeiyaCooper"]
 
 [dependencies]
 wgpu = "25.0.2"
+winit = "0.30.5"
+pollster = "0.3"
