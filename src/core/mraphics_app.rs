@@ -1,4 +1,4 @@
-use super::super::render::Renderer;
+use crate::{Scene, render::Renderer};
 use winit::{
     application::ApplicationHandler,
     event::WindowEvent,
@@ -6,8 +6,9 @@ use winit::{
     window::Window,
 };
 
-#[derive(Default)]
 pub struct MraphicsApp<'window> {
+    pub scene: Scene,
+
     renderer: Option<Renderer<'window>>,
 }
 
@@ -77,6 +78,13 @@ impl<'window> ApplicationHandler for MraphicsApp<'window> {
 }
 
 impl<'window> MraphicsApp<'window> {
+    pub fn new() -> Self {
+        Self {
+            renderer: None,
+            scene: Scene::new(),
+        }
+    }
+
     pub fn run(&mut self) {
         let event_loop = EventLoop::new().unwrap();
         event_loop.set_control_flow(winit::event_loop::ControlFlow::Poll);
