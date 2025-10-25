@@ -1,2 +1,5 @@
+> [!NOTE]  
+> This repo is **WIP**
+
 # Mraphics
-Explore interactive and intuitive math!
+An animation engine for exploring interactive and intuitive math, inspired by Manim.
