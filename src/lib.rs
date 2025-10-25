@@ -4,3 +4,5 @@ pub use core::*;
 pub mod geometry;
 
 pub mod render;
+
+pub mod material;

@@ -1,9 +1,14 @@
+use crate::{Scene, geometry::Mesh, render::PipelineManager};
+
 pub struct Renderer<'window> {
     pub surface: wgpu::Surface<'window>,
     pub surface_config: wgpu::SurfaceConfiguration,
     pub device: wgpu::Device,
     pub queue: wgpu::Queue,
-    pub render_pipeline: wgpu::RenderPipeline,
+
+    pub clear_color: [f64; 4],
+
+    pipeline_manager: PipelineManager,
 }
 
 impl<'window> Renderer<'window> {
@@ -11,7 +16,6 @@ impl<'window> Renderer<'window> {
         surface: wgpu::Surface<'window>,
         device: wgpu::Device,
         queue: wgpu::Queue,
-        shader_code: &str,
         adapter: &wgpu::Adapter,
     ) -> Self {
         let surface_caps = surface.get_capabilities(adapter);
@@ -28,66 +32,17 @@ impl<'window> Renderer<'window> {
 
         surface.configure(&device, &surface_config);
 
-        let shader_module = device.create_shader_module(wgpu::ShaderModuleDescriptor {
-            label: Some("Trekking Shader"),
-            source: wgpu::ShaderSource::Wgsl(shader_code.into()),
-        });
-
-        let render_pipeline_layout =
-            device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
-                label: Some("Trekking Render Pipeline Layout"),
-                bind_group_layouts: &[],
-                push_constant_ranges: &[],
-            });
-
-        let render_pipeline = device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
-            label: Some("Trekking Render Pipeline"),
-            layout: Some(&render_pipeline_layout),
-            vertex: wgpu::VertexState {
-                module: &shader_module,
-                entry_point: Some("vs"),
-                buffers: &[],
-                compilation_options: wgpu::PipelineCompilationOptions::default(),
-            },
-            fragment: Some(wgpu::FragmentState {
-                module: &shader_module,
-                entry_point: Some("fs"),
-                targets: &[Some(wgpu::ColorTargetState {
-                    format: surface_config.format,
-                    blend: Some(wgpu::BlendState::REPLACE),
-                    write_mask: wgpu::ColorWrites::ALL,
-                })],
-                compilation_options: wgpu::PipelineCompilationOptions::default(),
-            }),
-            primitive: wgpu::PrimitiveState {
-                topology: wgpu::PrimitiveTopology::TriangleList,
-                strip_index_format: None,
-                front_face: wgpu::FrontFace::Ccw,
-                cull_mode: None,
-                polygon_mode: wgpu::PolygonMode::Fill,
-                unclipped_depth: false,
-                conservative: false,
-            },
-            depth_stencil: None,
-            multisample: wgpu::MultisampleState {
-                count: 1,
-                mask: !0,
-                alpha_to_coverage_enabled: false,
-            },
-            multiview: None,
-            cache: None,
-        });
-
         Self {
             surface,
             surface_config,
             device,
             queue,
-            render_pipeline,
+            clear_color: [0., 0., 0., 1.],
+            pipeline_manager: PipelineManager::new(),
         }
     }
 
-    pub fn render(&self) -> Result<(), wgpu::SurfaceError> {
+    pub fn render(&mut self, scene: &mut Scene) -> Result<(), wgpu::SurfaceError> {
         let output = self.surface.get_current_texture()?;
         let view = output
             .texture
@@ -96,28 +51,31 @@ impl<'window> Renderer<'window> {
         let mut encoder = self
             .device
             .create_command_encoder(&wgpu::CommandEncoderDescriptor {
-                label: Some("Trekking Command Encoder"),
+                label: Some("Mraphics Command Encoder"),
             });
 
         let mut render_pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
-            label: Some("Trekking Render Pass"),
+            label: Some("Mraphics Render Pass"),
             color_attachments: &[Some(wgpu::RenderPassColorAttachment {
                 view: &view,
                 resolve_target: None,
                 ops: wgpu::Operations {
                     load: wgpu::LoadOp::Clear(wgpu::Color {
-                        r: 0.1,
-                        g: 0.5,
-                        b: 0.3,
-                        a: 1.0,
+                        r: self.clear_color[0],
+                        g: self.clear_color[1],
+                        b: self.clear_color[2],
+                        a: self.clear_color[3],
                     }),
                     store: wgpu::StoreOp::Store,
                 },
             })],
             ..Default::default()
         });
-        render_pass.set_pipeline(&self.render_pipeline);
-        render_pass.draw(0..3, 0..1);
+
+        scene.traverse_mut(&mut |mesh| {
+            self.render_mesh(mesh, &mut render_pass);
+        });
+
         drop(render_pass);
 
         self.queue.submit(std::iter::once(encoder.finish()));
@@ -125,6 +83,16 @@ impl<'window> Renderer<'window> {
         output.present();
 
         Ok(())
+    }
+
+    pub fn render_mesh(&mut self, mesh: &Mesh, render_pass: &mut wgpu::RenderPass) {
+        let pipeline = self.pipeline_manager.acquire_pipeline(
+            &self.device,
+            self.surface_config.format,
+            mesh.material.as_ref(),
+        );
+
+        render_pass.set_pipeline(pipeline);
     }
 
     pub fn resize(&mut self, width: u32, height: u32) {

@@ -1,11 +1,17 @@
-use crate::Node;
-
 #[derive(Clone, Debug)]
 pub struct Attribute {
-    pub data: Vec<f32>,
+    pub index: (usize, usize),
+    pub data: Vec<f64>,
 }
 
 pub struct Geometry {
-    pub node: Node,
     pub attributes: Vec<Attribute>,
+}
+
+impl Geometry {
+    pub fn new() -> Self {
+        Self {
+            attributes: Vec::new(),
+        }
+    }
 }

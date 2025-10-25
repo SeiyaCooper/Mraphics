@@ -43,13 +43,7 @@ impl<'window> ApplicationHandler for MraphicsApp<'window> {
                 .await
                 .unwrap();
 
-            self.renderer = Some(Renderer::new(
-                surface,
-                device,
-                queue,
-                include_str!("D:/WorkSpace/Mraphics/src/render/shaders/shader.wgsl"),
-                &adapter,
-            ));
+            self.renderer = Some(Renderer::new(surface, device, queue, &adapter));
         })());
     }
 
@@ -70,7 +64,11 @@ impl<'window> ApplicationHandler for MraphicsApp<'window> {
                     .resize(size.width, size.height);
             }
             WindowEvent::RedrawRequested => {
-                self.renderer.as_ref().unwrap().render().unwrap();
+                self.renderer
+                    .as_mut()
+                    .unwrap()
+                    .render(&mut self.scene)
+                    .unwrap();
             }
             _ => {}
         }
