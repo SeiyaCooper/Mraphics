@@ -1,4 +1,4 @@
-use crate::{Scene, geometry::Mesh, render::PipelineManager};
+use crate::{Scene, geometry::Mesh, math::Camera, render::PipelineManager};
 
 pub struct Renderer<'window> {
     pub surface: wgpu::Surface<'window>,
@@ -42,7 +42,7 @@ impl<'window> Renderer<'window> {
         }
     }
 
-    pub fn render(&mut self, scene: &mut Scene) -> Result<(), wgpu::SurfaceError> {
+    pub fn render(&mut self, scene: &mut Scene, camera: &Camera) -> Result<(), wgpu::SurfaceError> {
         let output = self.surface.get_current_texture()?;
         let view = output
             .texture
@@ -73,7 +73,7 @@ impl<'window> Renderer<'window> {
         });
 
         scene.traverse_mut(&mut |mesh| {
-            self.render_mesh(mesh, &mut render_pass);
+            self.render_mesh(&mut render_pass, mesh, camera);
         });
 
         drop(render_pass);
@@ -85,7 +85,12 @@ impl<'window> Renderer<'window> {
         Ok(())
     }
 
-    pub fn render_mesh(&mut self, mesh: &Mesh, render_pass: &mut wgpu::RenderPass) {
+    pub fn render_mesh(
+        &mut self,
+        render_pass: &mut wgpu::RenderPass,
+        mesh: &Mesh,
+        _camera: &Camera,
+    ) {
         let pipeline = self.pipeline_manager.acquire_pipeline(
             &self.device,
             self.surface_config.format,
@@ -93,6 +98,7 @@ impl<'window> Renderer<'window> {
         );
 
         render_pass.set_pipeline(pipeline);
+        render_pass.draw(0..3, 0..1);
     }
 
     pub fn resize(&mut self, width: u32, height: u32) {

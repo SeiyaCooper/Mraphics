@@ -1,4 +1,4 @@
-use crate::{Scene, render::Renderer};
+use crate::{Scene, math::Camera, render::Renderer};
 use winit::{
     application::ApplicationHandler,
     event::WindowEvent,
@@ -8,8 +8,8 @@ use winit::{
 
 pub struct MraphicsApp<'window> {
     pub scene: Scene,
-
-    renderer: Option<Renderer<'window>>,
+    pub camera: Camera,
+    pub renderer: Option<Renderer<'window>>,
 }
 
 impl<'window> ApplicationHandler for MraphicsApp<'window> {
@@ -67,7 +67,7 @@ impl<'window> ApplicationHandler for MraphicsApp<'window> {
                 self.renderer
                     .as_mut()
                     .unwrap()
-                    .render(&mut self.scene)
+                    .render(&mut self.scene, &self.camera)
                     .unwrap();
             }
             _ => {}
@@ -78,6 +78,7 @@ impl<'window> ApplicationHandler for MraphicsApp<'window> {
 impl<'window> MraphicsApp<'window> {
     pub fn new() -> Self {
         Self {
+            camera: Camera::new(),
             renderer: None,
             scene: Scene::new(),
         }
