@@ -746,6 +746,7 @@ dependencies = [
 name = "mraphics"
 version = "0.0.1"
 dependencies = [
+ "bytemuck",
  "pollster",
  "wgpu",
  "winit",

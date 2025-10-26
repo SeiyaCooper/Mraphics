@@ -8,3 +8,4 @@ authors = ["SeiyaCooper"]
 wgpu = "25.0.2"
 winit = "0.30.5"
 pollster = "0.3"
+bytemuck = "1.24.0"

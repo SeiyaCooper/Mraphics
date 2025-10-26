@@ -1,4 +1,16 @@
-use crate::{Scene, geometry::Mesh, math::Camera, render::PipelineManager};
+use crate::{
+    Scene,
+    geometry::Mesh,
+    math::Camera,
+    render::{
+        Conveyor, PipelineManager,
+        conveyor::{GadgetDescriptor, GadgetIndex},
+    },
+};
+
+pub const VIEW_MAT_LABEL: &'static str = "mraphics-view-mat";
+pub const PROJECTION_MAT_LABEL: &'static str = "mraphics-projection-mat";
+pub const MODEL_MAT_LABEL: &'static str = "mraphics-model-mat";
 
 pub struct Renderer<'window> {
     pub surface: wgpu::Surface<'window>,
@@ -9,6 +21,7 @@ pub struct Renderer<'window> {
     pub clear_color: [f64; 4],
 
     pipeline_manager: PipelineManager,
+    conveyor: Conveyor,
 }
 
 impl<'window> Renderer<'window> {
@@ -32,6 +45,45 @@ impl<'window> Renderer<'window> {
 
         surface.configure(&device, &surface_config);
 
+        let mut conveyor = Conveyor::new();
+        conveyor.init_gadget(
+            &device,
+            &GadgetDescriptor {
+                label: VIEW_MAT_LABEL,
+                index: GadgetIndex {
+                    group_index: 0,
+                    binding_index: 0,
+                },
+                size: 4 * 4 * 4,
+                usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
+            },
+        );
+        conveyor.init_gadget(
+            &device,
+            &GadgetDescriptor {
+                label: PROJECTION_MAT_LABEL,
+                index: GadgetIndex {
+                    group_index: 0,
+                    binding_index: 1,
+                },
+                size: 4 * 4 * 4,
+                usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
+            },
+        );
+
+        conveyor.init_gadget(
+            &device,
+            &GadgetDescriptor {
+                label: MODEL_MAT_LABEL,
+                index: GadgetIndex {
+                    group_index: 0,
+                    binding_index: 2,
+                },
+                size: 4 * 4 * 4,
+                usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
+            },
+        );
+
         Self {
             surface,
             surface_config,
@@ -39,6 +91,7 @@ impl<'window> Renderer<'window> {
             queue,
             clear_color: [0., 0., 0., 1.],
             pipeline_manager: PipelineManager::new(),
+            conveyor,
         }
     }
 
@@ -89,13 +142,36 @@ impl<'window> Renderer<'window> {
         &mut self,
         render_pass: &mut wgpu::RenderPass,
         mesh: &Mesh,
-        _camera: &Camera,
+        camera: &Camera,
     ) {
         let pipeline = self.pipeline_manager.acquire_pipeline(
             &self.device,
             self.surface_config.format,
             mesh.material.as_ref(),
         );
+
+        // SAFETY: initialized these gadgets in Renderer::new()
+        self.conveyor
+            .update_gadget(
+                &self.queue,
+                VIEW_MAT_LABEL,
+                camera.view_mat.as_static::<4, 4>().as_bytes(),
+            )
+            .unwrap();
+        self.conveyor
+            .update_gadget(
+                &self.queue,
+                PROJECTION_MAT_LABEL,
+                camera.view_mat.as_static::<4, 4>().as_bytes(),
+            )
+            .unwrap();
+        self.conveyor
+            .update_gadget(
+                &self.queue,
+                MODEL_MAT_LABEL,
+                camera.view_mat.as_static::<4, 4>().as_bytes(),
+            )
+            .unwrap();
 
         render_pass.set_pipeline(pipeline);
         render_pass.draw(0..3, 0..1);

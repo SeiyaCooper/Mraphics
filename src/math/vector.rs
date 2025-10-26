@@ -1,5 +1,5 @@
 use crate::math::Scalar;
-use std::ops::{Index, IndexMut};
+use std::ops::{Deref, Index, IndexMut};
 
 #[derive(Debug, Clone)]
 pub struct Vector<T>
@@ -21,6 +21,17 @@ where
         Self {
             data: vec![Default::default(); n],
         }
+    }
+}
+
+impl<T> Deref for Vector<T>
+where
+    T: Scalar,
+{
+    type Target = [T];
+
+    fn deref(&self) -> &Self::Target {
+        &self.data
     }
 }
 
