@@ -21,7 +21,7 @@ pub struct Renderer<'window> {
     pub clear_color: [f64; 4],
 
     pipeline_manager: PipelineManager,
-    conveyor: Conveyor,
+    conveyor: Conveyor<'window>,
 }
 
 impl<'window> Renderer<'window> {
@@ -56,6 +56,7 @@ impl<'window> Renderer<'window> {
                 },
                 size: 4 * 4 * 4,
                 usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
+                ty: wgpu::BufferBindingType::Uniform,
             },
         );
         conveyor.init_gadget(
@@ -68,6 +69,7 @@ impl<'window> Renderer<'window> {
                 },
                 size: 4 * 4 * 4,
                 usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
+                ty: wgpu::BufferBindingType::Uniform,
             },
         );
 
@@ -81,6 +83,7 @@ impl<'window> Renderer<'window> {
                 },
                 size: 4 * 4 * 4,
                 usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
+                ty: wgpu::BufferBindingType::Uniform,
             },
         );
 
@@ -144,12 +147,6 @@ impl<'window> Renderer<'window> {
         mesh: &Mesh,
         camera: &Camera,
     ) {
-        let pipeline = self.pipeline_manager.acquire_pipeline(
-            &self.device,
-            self.surface_config.format,
-            mesh.material.as_ref(),
-        );
-
         // SAFETY: initialized these gadgets in Renderer::new()
         self.conveyor
             .update_gadget(
@@ -162,16 +159,31 @@ impl<'window> Renderer<'window> {
             .update_gadget(
                 &self.queue,
                 PROJECTION_MAT_LABEL,
-                camera.view_mat.as_static::<4, 4>().as_bytes(),
+                camera.projection_mat.as_static::<4, 4>().as_bytes(),
             )
             .unwrap();
         self.conveyor
             .update_gadget(
                 &self.queue,
                 MODEL_MAT_LABEL,
-                camera.view_mat.as_static::<4, 4>().as_bytes(),
+                mesh.matrix.as_static::<4, 4>().as_bytes(),
             )
             .unwrap();
+
+        let needs_update = self.conveyor.needs_update;
+        if needs_update {
+            self.conveyor.update_bundles(&self.device);
+        }
+
+        let pipeline = self.pipeline_manager.acquire_pipeline(
+            &self.device,
+            self.surface_config.format,
+            mesh.material.as_ref(),
+            &self.conveyor.collect_bind_group_layouts(),
+            needs_update,
+        );
+
+        self.conveyor.attach_bundles(render_pass);
 
         render_pass.set_pipeline(pipeline);
         render_pass.draw(0..3, 0..1);

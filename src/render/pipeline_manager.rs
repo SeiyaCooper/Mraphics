@@ -1,3 +1,5 @@
+use wgpu::BindGroupLayout;
+
 use crate::material::Material;
 use std::collections::HashMap;
 
@@ -17,10 +19,12 @@ impl PipelineManager {
         device: &wgpu::Device,
         texture_format: wgpu::TextureFormat,
         material: &dyn Material,
+        bind_groups: &[&BindGroupLayout],
+        force_update: bool,
     ) -> &wgpu::RenderPipeline {
         let pipeline_identifier = material.identifier();
 
-        if !self.pipeline_pool.contains_key(pipeline_identifier) {
+        if !self.pipeline_pool.contains_key(pipeline_identifier) || force_update {
             let shader_module = device.create_shader_module(wgpu::ShaderModuleDescriptor {
                 label: Some("Mraphics Shader"),
                 source: wgpu::ShaderSource::Wgsl(material.shader_code().into()),
@@ -29,7 +33,7 @@ impl PipelineManager {
             let render_pipeline_layout =
                 device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
                     label: Some("Mraphics Render Pipeline Layout"),
-                    bind_group_layouts: &[],
+                    bind_group_layouts: bind_groups,
                     push_constant_ranges: &[],
                 });
 

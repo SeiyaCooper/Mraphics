@@ -1,9 +1,10 @@
-use crate::{geometry::Geometry, material::Material};
+use crate::{geometry::Geometry, material::Material, math::Matrix};
 
 pub struct Mesh {
     pub children: Vec<Mesh>,
     pub geometry: Geometry,
     pub material: Box<dyn Material>,
+    pub matrix: Matrix<f32>,
 }
 
 impl Mesh {
@@ -12,6 +13,7 @@ impl Mesh {
             children: Vec::new(),
             geometry,
             material: Box::new(material),
+            matrix: Matrix::identity(4),
         }
     }
 

@@ -1,4 +1,4 @@
-use std::ops::{Index, IndexMut};
+use std::ops::{Index, IndexMut, Mul};
 
 use crate::math::{Scalar, Vector};
 
@@ -42,6 +42,18 @@ impl<T: Scalar> Matrix<T> {
 
         out
     }
+
+    pub fn col_num(&self) -> usize {
+        self.data.len()
+    }
+
+    pub fn row_num(&self) -> usize {
+        self.data[0].len()
+    }
+
+    pub fn shape(&self) -> (usize, usize) {
+        (self.col_num(), self.row_num())
+    }
 }
 
 impl<T: Scalar> Index<(usize, usize)> for Matrix<T> {
@@ -58,6 +70,25 @@ impl<T: Scalar> IndexMut<(usize, usize)> for Matrix<T> {
     }
 }
 
+impl<T: Scalar> Mul<T> for Matrix<T> {
+    type Output = Matrix<T>;
+
+    fn mul(self, rhs: T) -> Self::Output {
+        let mut out = Matrix::zeros(self.row_num(), self.col_num());
+
+        for i in 0..self.col_num() {
+            for j in 0..self.row_num() {
+                out[(i, j)] = self[(i, j)] * rhs;
+            }
+        }
+
+        out
+    }
+}
+
+/**
+ * Static Matrix
+ */
 #[repr(C)]
 #[derive(Debug, Clone)]
 pub struct SMatrix<T: Scalar, const ROW: usize, const COL: usize> {
