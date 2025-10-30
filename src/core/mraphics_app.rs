@@ -1,4 +1,5 @@
 use crate::{Scene, math::Camera, render::Renderer};
+use std::sync::Arc;
 use winit::{
     application::ApplicationHandler,
     event::WindowEvent,
@@ -7,6 +8,7 @@ use winit::{
 };
 
 pub struct MraphicsApp<'window> {
+    pub window: Option<Arc<Window>>,
     pub scene: Scene,
     pub camera: Camera,
     pub renderer: Option<Renderer<'window>>,
@@ -18,6 +20,8 @@ impl<'window> ApplicationHandler for MraphicsApp<'window> {
             .create_window(Window::default_attributes())
             .unwrap();
 
+        self.window = Some(Arc::new(window));
+
         let instance = wgpu::Instance::new(&wgpu::InstanceDescriptor {
             #[cfg(target_arch = "wasm32")]
             backends: wgpu::Backends::GL,
@@ -26,9 +30,11 @@ impl<'window> ApplicationHandler for MraphicsApp<'window> {
             ..Default::default()
         });
 
-        let surface = instance.create_surface(window).unwrap();
+        let surface = instance
+            .create_surface(Arc::clone(self.window.as_ref().unwrap()))
+            .unwrap();
 
-        pollster::block_on((async || {
+        pollster::block_on(async {
             let adapter = instance
                 .request_adapter(&wgpu::RequestAdapterOptions {
                     force_fallback_adapter: false,
@@ -44,7 +50,7 @@ impl<'window> ApplicationHandler for MraphicsApp<'window> {
                 .unwrap();
 
             self.renderer = Some(Renderer::new(surface, device, queue, &adapter));
-        })());
+        });
     }
 
     fn window_event(
@@ -69,6 +75,8 @@ impl<'window> ApplicationHandler for MraphicsApp<'window> {
                     .unwrap()
                     .render(&mut self.scene, &self.camera)
                     .unwrap();
+
+                self.window.as_ref().unwrap().request_redraw();
             }
             _ => {}
         }
@@ -81,6 +89,7 @@ impl<'window> MraphicsApp<'window> {
             camera: Camera::new(),
             renderer: None,
             scene: Scene::new(),
+            window: None,
         }
     }
 

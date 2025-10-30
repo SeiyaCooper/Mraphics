@@ -1,4 +1,7 @@
-use std::ops::{Index, IndexMut, Mul};
+use std::{
+    ops::{Index, IndexMut, Mul},
+    vec,
+};
 
 use crate::math::{Scalar, Vector};
 
@@ -8,8 +11,8 @@ pub struct Matrix<T: Scalar> {
 }
 
 impl<T: Scalar> Matrix<T> {
-    pub fn new() -> Self {
-        Self { data: Vec::new() }
+    pub fn new(data: Vec<Vector<T>>) -> Self {
+        Self { data }
     }
 
     pub fn as_static<const ROW: usize, const COL: usize>(&self) -> SMatrix<T, ROW, COL> {
@@ -30,14 +33,11 @@ impl<T: Scalar> Matrix<T> {
         }
     }
 
-    pub fn identity(n: usize) -> Self
-    where
-        T: From<u8>,
-    {
+    pub fn identity(n: usize) -> Self {
         let mut out: Matrix<T> = Matrix::zeros(n, n);
 
         for i in 0..n {
-            out.data[i][i] = T::from(1);
+            out.data[i][i] = T::ONE;
         }
 
         out
@@ -53,6 +53,108 @@ impl<T: Scalar> Matrix<T> {
 
     pub fn shape(&self) -> (usize, usize) {
         (self.col_num(), self.row_num())
+    }
+
+    pub fn rotate_x(ang_rad: f32, n: usize) -> Self
+    where
+        T: From<f32>,
+    {
+        let one = T::ONE;
+        let zero = T::default();
+        let sin = T::from(ang_rad.sin());
+        let cos = T::from(ang_rad.cos());
+
+        if n == 3 {
+            return Matrix {
+                data: vec![
+                    Vector::new(vec![one, zero, zero]),
+                    Vector::new(vec![zero, cos, -sin]),
+                    Vector::new(vec![zero, sin, cos]),
+                ],
+            };
+        } else if n == 4 {
+            return Matrix {
+                data: vec![
+                    Vector::new(vec![one, zero, zero, zero]),
+                    Vector::new(vec![zero, cos, -sin, zero]),
+                    Vector::new(vec![zero, sin, cos, zero]),
+                    Vector::new(vec![zero, zero, zero, one]),
+                ],
+            };
+        } else {
+            panic!(
+                "Invaild Dimension: Matrix::rotate_x only supports generating 3x3 or 4x4 matrices, got {}",
+                n
+            )
+        }
+    }
+
+    pub fn rotate_y(ang_rad: f32, n: usize) -> Self
+    where
+        T: From<f32>,
+    {
+        let one = T::ONE;
+        let zero = T::default();
+        let sin = T::from(ang_rad.sin());
+        let cos = T::from(ang_rad.cos());
+
+        if n == 3 {
+            return Matrix {
+                data: vec![
+                    Vector::new(vec![cos, zero, -sin]),
+                    Vector::new(vec![zero, one, zero]),
+                    Vector::new(vec![sin, zero, cos]),
+                ],
+            };
+        } else if n == 4 {
+            return Matrix {
+                data: vec![
+                    Vector::new(vec![cos, zero, -sin, zero]),
+                    Vector::new(vec![zero, one, zero, zero]),
+                    Vector::new(vec![sin, zero, cos, zero]),
+                    Vector::new(vec![zero, zero, zero, one]),
+                ],
+            };
+        } else {
+            panic!(
+                "Invaild Dimension: Matrix::rotate_y only supports generating 3x3 or 4x4 matrices, got {}",
+                n
+            )
+        }
+    }
+
+    pub fn rotate_z(ang_rad: f32, n: usize) -> Self
+    where
+        T: From<f32>,
+    {
+        let one = T::ONE;
+        let zero = T::default();
+        let sin = T::from(ang_rad.sin());
+        let cos = T::from(ang_rad.cos());
+
+        if n == 3 {
+            return Matrix {
+                data: vec![
+                    Vector::new(vec![cos, -sin, zero]),
+                    Vector::new(vec![sin, cos, zero]),
+                    Vector::new(vec![zero, zero, one]),
+                ],
+            };
+        } else if n == 4 {
+            return Matrix {
+                data: vec![
+                    Vector::new(vec![cos, -sin, zero, zero]),
+                    Vector::new(vec![sin, cos, zero, zero]),
+                    Vector::new(vec![zero, zero, one, zero]),
+                    Vector::new(vec![zero, zero, zero, one]),
+                ],
+            };
+        } else {
+            panic!(
+                "Invaild Dimension: Matrix::rotate_z only supports generating 3x3 or 4x4 matrices, got {}",
+                n
+            )
+        }
     }
 }
 

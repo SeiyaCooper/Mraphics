@@ -1,4 +1,4 @@
-use std::ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Sub, SubAssign};
+use std::ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Neg, Sub, SubAssign};
 
 pub trait Scalar:
     Copy
@@ -15,22 +15,25 @@ pub trait Scalar:
     + MulAssign
     + Div<Output = Self>
     + DivAssign
+    + Neg<Output = Self>
 {
+    const ONE: Self;
 }
 
-impl Scalar for u8 {}
-impl Scalar for u16 {}
-impl Scalar for u32 {}
-impl Scalar for u64 {}
-impl Scalar for u128 {}
-impl Scalar for usize {}
+macro_rules! impl_scalar {
+    ($t: ty, $one:expr) => {
+        impl Scalar for $t {
+            const ONE: Self = $one;
+        }
+    };
+}
 
-impl Scalar for i8 {}
-impl Scalar for i16 {}
-impl Scalar for i32 {}
-impl Scalar for i64 {}
-impl Scalar for i128 {}
-impl Scalar for isize {}
+impl_scalar!(i8, 1);
+impl_scalar!(i16, 1);
+impl_scalar!(i32, 1);
+impl_scalar!(i64, 1);
+impl_scalar!(i128, 1);
+impl_scalar!(isize, 1);
 
-impl Scalar for f32 {}
-impl Scalar for f64 {}
+impl_scalar!(f32, 1.0);
+impl_scalar!(f64, 1.0);
