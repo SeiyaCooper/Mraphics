@@ -2,15 +2,13 @@ use crate::{
     Scene,
     geometry::Mesh,
     math::Camera,
-    render::{
-        Conveyor, PipelineManager,
-        conveyor::{GadgetDescriptor, GadgetIndex},
-    },
+    render::{Conveyor, ConveyorManager, PipelineManager, conveyor::GadgetDescriptor},
 };
 
-pub const VIEW_MAT_LABEL: &'static str = "mraphics-view-mat";
-pub const PROJECTION_MAT_LABEL: &'static str = "mraphics-projection-mat";
-pub const MODEL_MAT_LABEL: &'static str = "mraphics-model-mat";
+use crate::constants::{
+    MODEL_MAT_INDEX, MODEL_MAT_LABEL, PROJECTION_MAT_INDEX, PROJECTION_MAT_LABEL, VIEW_MAT_INDEX,
+    VIEW_MAT_LABEL,
+};
 
 pub struct Renderer<'window> {
     pub surface: wgpu::Surface<'window>,
@@ -21,7 +19,8 @@ pub struct Renderer<'window> {
     pub clear_color: [f64; 4],
 
     pipeline_manager: PipelineManager,
-    conveyor: Conveyor<'window>,
+    conveyor_manager: ConveyorManager<'window>,
+    shared_conveyor: Conveyor<'window>,
 }
 
 impl<'window> Renderer<'window> {
@@ -45,42 +44,33 @@ impl<'window> Renderer<'window> {
 
         surface.configure(&device, &surface_config);
 
-        let mut conveyor = Conveyor::new();
-        conveyor.init_gadget(
+        let mut shared_conveyor = Conveyor::new();
+        shared_conveyor.init_gadget(
             &device,
             &GadgetDescriptor {
                 label: VIEW_MAT_LABEL,
-                index: GadgetIndex {
-                    group_index: 0,
-                    binding_index: 0,
-                },
+                index: VIEW_MAT_INDEX,
                 size: 4 * 4 * 4,
                 usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
                 ty: wgpu::BufferBindingType::Uniform,
             },
         );
-        conveyor.init_gadget(
+        shared_conveyor.init_gadget(
             &device,
             &GadgetDescriptor {
                 label: PROJECTION_MAT_LABEL,
-                index: GadgetIndex {
-                    group_index: 0,
-                    binding_index: 1,
-                },
+                index: PROJECTION_MAT_INDEX,
                 size: 4 * 4 * 4,
                 usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
                 ty: wgpu::BufferBindingType::Uniform,
             },
         );
 
-        conveyor.init_gadget(
+        shared_conveyor.init_gadget(
             &device,
             &GadgetDescriptor {
                 label: MODEL_MAT_LABEL,
-                index: GadgetIndex {
-                    group_index: 0,
-                    binding_index: 2,
-                },
+                index: MODEL_MAT_INDEX,
                 size: 4 * 4 * 4,
                 usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
                 ty: wgpu::BufferBindingType::Uniform,
@@ -94,11 +84,16 @@ impl<'window> Renderer<'window> {
             queue,
             clear_color: [0., 0., 0., 1.],
             pipeline_manager: PipelineManager::new(),
-            conveyor,
+            conveyor_manager: ConveyorManager::new(),
+            shared_conveyor,
         }
     }
 
-    pub fn render(&mut self, scene: &mut Scene, camera: &Camera) -> Result<(), wgpu::SurfaceError> {
+    pub fn render(
+        &mut self,
+        scene: &mut Scene<'window>,
+        camera: &Camera,
+    ) -> Result<(), wgpu::SurfaceError> {
         let output = self.surface.get_current_texture()?;
         let view = output
             .texture
@@ -128,8 +123,24 @@ impl<'window> Renderer<'window> {
             ..Default::default()
         });
 
-        scene.traverse_mut(&mut |mesh| {
-            self.render_mesh(&mut render_pass, mesh, camera);
+        // SAFETY: initialized these gadgets in Renderer::new()
+        self.shared_conveyor
+            .update_gadget(
+                &self.queue,
+                VIEW_MAT_LABEL,
+                camera.view_mat.as_static::<4, 4>().as_bytes(),
+            )
+            .unwrap();
+        self.shared_conveyor
+            .update_gadget(
+                &self.queue,
+                PROJECTION_MAT_LABEL,
+                camera.projection_mat.as_static::<4, 4>().as_bytes(),
+            )
+            .unwrap();
+
+        scene.traverse_mut(&mut |mesh: &mut Mesh<'window>| {
+            self.render_mesh(&mut render_pass, mesh);
         });
 
         drop(render_pass);
@@ -141,28 +152,9 @@ impl<'window> Renderer<'window> {
         Ok(())
     }
 
-    pub fn render_mesh(
-        &mut self,
-        render_pass: &mut wgpu::RenderPass,
-        mesh: &Mesh,
-        camera: &Camera,
-    ) {
-        // SAFETY: initialized these gadgets in Renderer::new()
-        self.conveyor
-            .update_gadget(
-                &self.queue,
-                VIEW_MAT_LABEL,
-                camera.view_mat.as_static::<4, 4>().as_bytes(),
-            )
-            .unwrap();
-        self.conveyor
-            .update_gadget(
-                &self.queue,
-                PROJECTION_MAT_LABEL,
-                camera.projection_mat.as_static::<4, 4>().as_bytes(),
-            )
-            .unwrap();
-        self.conveyor
+    pub fn render_mesh(&mut self, render_pass: &mut wgpu::RenderPass, mesh: &mut Mesh<'window>) {
+        // SAFETY: initialized this gadget in Renderer::new()
+        self.shared_conveyor
             .update_gadget(
                 &self.queue,
                 MODEL_MAT_LABEL,
@@ -170,20 +162,57 @@ impl<'window> Renderer<'window> {
             )
             .unwrap();
 
-        let needs_update = self.conveyor.needs_update;
+        let attr_conveyor_status = self
+            .conveyor_manager
+            .acquire_attr_conveyor(mesh.geometry.identifier());
+
+        for attr in mesh.geometry.attributes_mut() {
+            if attr_conveyor_status.is_new {
+                attr_conveyor_status.reference.init_gadget(
+                    &self.device,
+                    &GadgetDescriptor {
+                        label: attr.label,
+                        index: attr.index,
+                        size: attr.data.len() as u64,
+                        usage: wgpu::BufferUsages::STORAGE | wgpu::BufferUsages::COPY_DST,
+                        ty: wgpu::BufferBindingType::Storage { read_only: true },
+                    },
+                );
+            }
+
+            if !attr.needs_update {
+                continue;
+            }
+
+            // SAFETY: This may panic, but it's developer's responsibility
+            attr_conveyor_status
+                .reference
+                .update_gadget(&self.queue, attr.label, attr.data)
+                .unwrap();
+
+            attr.needs_update = false;
+        }
+
+        let needs_update =
+            self.shared_conveyor.needs_update || attr_conveyor_status.reference.needs_update;
         if needs_update {
-            self.conveyor.update_bundles(&self.device);
+            self.shared_conveyor.update_bundles(&self.device);
+            attr_conveyor_status.reference.update_bundles(&self.device);
         }
 
         let pipeline = self.pipeline_manager.acquire_pipeline(
             &self.device,
             self.surface_config.format,
             mesh.material.as_ref(),
-            &self.conveyor.collect_bind_group_layouts(),
+            &Conveyor::collect_bind_group_layouts(vec![
+                &self.shared_conveyor.bundles,
+                &attr_conveyor_status.reference.bundles,
+            ]),
             needs_update,
         );
 
-        self.conveyor.attach_bundles(render_pass);
+        self.shared_conveyor.attach_bundles(render_pass);
+        attr_conveyor_status.reference.attach_bundles(render_pass);
 
         render_pass.set_pipeline(pipeline);
         render_pass.draw(0..3, 0..1);

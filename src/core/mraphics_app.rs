@@ -9,7 +9,7 @@ use winit::{
 
 pub struct MraphicsApp<'window> {
     pub window: Option<Arc<Window>>,
-    pub scene: Scene,
+    pub scene: Scene<'window>,
     pub camera: Camera,
     pub renderer: Option<Renderer<'window>>,
 }

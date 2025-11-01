@@ -1,11 +1,12 @@
 use std::collections::HashMap;
 
+#[derive(Debug)]
 struct Gadget {
     buffer: wgpu::Buffer,
     ty: wgpu::BufferBindingType,
 }
 
-#[derive(Clone, Copy)]
+#[derive(Debug, Clone, Copy)]
 pub struct GadgetIndex {
     pub group_index: usize,
     pub binding_index: u32,
@@ -19,26 +20,10 @@ pub struct GadgetDescriptor<'a> {
     pub ty: wgpu::BufferBindingType,
 }
 
-struct Bundle {
+#[derive(Debug)]
+pub struct Bundle {
     bind_group: wgpu::BindGroup,
     bind_group_layout: wgpu::BindGroupLayout,
-}
-
-impl Bundle {
-    fn empty(device: &wgpu::Device) -> Self {
-        let empty_layout = device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
-            label: None,
-            entries: &[],
-        });
-        Self {
-            bind_group: device.create_bind_group(&wgpu::BindGroupDescriptor {
-                label: None,
-                entries: &[],
-                layout: &empty_layout,
-            }),
-            bind_group_layout: empty_layout,
-        }
-    }
 }
 
 #[derive(Debug)]
@@ -48,9 +33,9 @@ pub enum ConveyorError {
 
 pub struct Conveyor<'a> {
     pub needs_update: bool,
+    pub bundles: Vec<Option<Bundle>>,
 
     gadgets: HashMap<&'a str, Gadget>,
-    bundles: Vec<Bundle>,
     indices: Vec<Option<HashMap<u32, &'a str>>>,
 }
 
@@ -120,7 +105,7 @@ impl<'a> Conveyor<'a> {
             let mut bind_group_entries: Vec<wgpu::BindGroupEntry> = Vec::new();
 
             if group_desc.is_none() {
-                self.bundles.push(Bundle::empty(device));
+                self.bundles.push(None);
                 continue;
             }
 
@@ -166,22 +151,40 @@ impl<'a> Conveyor<'a> {
                 bind_group_layout: bind_group_layout,
             };
 
-            self.bundles.push(bundle);
+            self.bundles.push(Some(bundle));
 
             self.needs_update = false;
         }
     }
 
     pub fn attach_bundles(&self, render_pass: &mut wgpu::RenderPass) {
-        for (index, bundle) in self.bundles.iter().enumerate() {
-            render_pass.set_bind_group(index as u32, &bundle.bind_group, &[]);
+        for (index, maybe_bundle) in self.bundles.iter().enumerate() {
+            if let Some(bundle) = maybe_bundle {
+                render_pass.set_bind_group(index as u32, &bundle.bind_group, &[]);
+            }
         }
     }
 
-    pub fn collect_bind_group_layouts(&mut self) -> Vec<&wgpu::BindGroupLayout> {
-        self.bundles
-            .iter()
-            .map(|bundle| &bundle.bind_group_layout)
-            .collect()
+    pub fn collect_bind_group_layouts(
+        bundles_collection: Vec<&Vec<Option<Bundle>>>,
+    ) -> Vec<&wgpu::BindGroupLayout> {
+        let mut max_len = 0;
+        let mut bind_group_layouts = Vec::new();
+
+        for bundles in bundles_collection.iter() {
+            if bundles.len() > max_len {
+                max_len = bundles.len()
+            }
+        }
+
+        for i in 0..max_len {
+            for bundles in bundles_collection.iter() {
+                if !bundles.get(i).is_none() && !bundles[i].is_none() {
+                    bind_group_layouts.push(&bundles[i].as_ref().unwrap().bind_group_layout);
+                }
+            }
+        }
+
+        bind_group_layouts
     }
 }
