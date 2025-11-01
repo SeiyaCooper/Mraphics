@@ -8,13 +8,14 @@ use std::{
 pub struct Attribute<'a> {
     pub label: &'a str,
     pub index: GadgetIndex,
-    pub data: &'a [u8],
+    pub data: Vec<u8>,
     pub needs_update: bool,
 }
 
 pub trait GeometryView<'a> {
     fn attributes(&self) -> &Vec<Attribute<'a>>;
     fn attributes_mut(&mut self) -> &mut Vec<Attribute<'a>>;
+    fn indices(&self) -> u32;
     fn identifier(&self) -> &str;
 }
 
@@ -44,6 +45,10 @@ impl GeometryView<'static> for Geometry {
 
     fn attributes_mut(&mut self) -> &mut Vec<Attribute<'static>> {
         &mut self.attributes
+    }
+
+    fn indices(&self) -> u32 {
+        self.attributes[0].data.len() as u32 / 4
     }
 
     fn identifier(&self) -> &str {

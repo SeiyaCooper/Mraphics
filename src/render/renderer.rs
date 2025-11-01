@@ -187,7 +187,7 @@ impl<'window> Renderer<'window> {
             // SAFETY: This may panic, but it's developer's responsibility
             attr_conveyor_status
                 .reference
-                .update_gadget(&self.queue, attr.label, attr.data)
+                .update_gadget(&self.queue, attr.label, &attr.data)
                 .unwrap();
 
             attr.needs_update = false;
@@ -215,7 +215,7 @@ impl<'window> Renderer<'window> {
         attr_conveyor_status.reference.attach_bundles(render_pass);
 
         render_pass.set_pipeline(pipeline);
-        render_pass.draw(0..3, 0..1);
+        render_pass.draw(0..mesh.geometry.indices(), 0..1);
     }
 
     pub fn resize(&mut self, width: u32, height: u32) {
