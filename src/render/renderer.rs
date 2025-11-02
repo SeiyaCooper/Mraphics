@@ -89,10 +89,10 @@ impl<'window> Renderer<'window> {
         }
     }
 
-    pub fn render(
+    pub fn render<C: Camera>(
         &mut self,
         scene: &mut Scene<'window>,
-        camera: &Camera,
+        camera: &C,
     ) -> Result<(), wgpu::SurfaceError> {
         let output = self.surface.get_current_texture()?;
         let view = output
@@ -125,17 +125,13 @@ impl<'window> Renderer<'window> {
 
         // SAFETY: initialized these gadgets in Renderer::new()
         self.shared_conveyor
-            .update_gadget(
-                &self.queue,
-                VIEW_MAT_LABEL,
-                camera.view_mat.as_static::<4, 4>().as_bytes(),
-            )
+            .update_gadget(&self.queue, VIEW_MAT_LABEL, camera.view_mat_data())
             .unwrap();
         self.shared_conveyor
             .update_gadget(
                 &self.queue,
                 PROJECTION_MAT_LABEL,
-                camera.projection_mat.as_static::<4, 4>().as_bytes(),
+                camera.projection_mat_data(),
             )
             .unwrap();
 
