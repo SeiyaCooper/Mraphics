@@ -45,7 +45,7 @@ impl<'window> Renderer<'window> {
         surface.configure(&device, &surface_config);
 
         let mut shared_conveyor = Conveyor::new();
-        shared_conveyor.init_gadget(
+        shared_conveyor.upsert_gadget(
             &device,
             &GadgetDescriptor {
                 label: VIEW_MAT_LABEL,
@@ -55,7 +55,7 @@ impl<'window> Renderer<'window> {
                 ty: wgpu::BufferBindingType::Uniform,
             },
         );
-        shared_conveyor.init_gadget(
+        shared_conveyor.upsert_gadget(
             &device,
             &GadgetDescriptor {
                 label: PROJECTION_MAT_LABEL,
@@ -66,7 +66,7 @@ impl<'window> Renderer<'window> {
             },
         );
 
-        shared_conveyor.init_gadget(
+        shared_conveyor.upsert_gadget(
             &device,
             &GadgetDescriptor {
                 label: MODEL_MAT_LABEL,
@@ -162,13 +162,13 @@ impl<'window> Renderer<'window> {
             )
             .unwrap();
 
-        let attr_conveyor_status = self
+        let attr_conveyor = self
             .conveyor_manager
             .acquire_attr_conveyor(mesh.geometry.identifier());
 
         for attr in mesh.geometry.attributes_mut() {
-            if attr_conveyor_status.is_new {
-                attr_conveyor_status.reference.init_gadget(
+            if attr.needs_update_buffer {
+                attr_conveyor.upsert_gadget(
                     &self.device,
                     &GadgetDescriptor {
                         label: attr.label,
@@ -178,26 +178,26 @@ impl<'window> Renderer<'window> {
                         ty: wgpu::BufferBindingType::Storage { read_only: true },
                     },
                 );
+
+                attr.needs_update_buffer = false;
             }
 
-            if !attr.needs_update {
+            if !attr.needs_update_value {
                 continue;
             }
 
             // SAFETY: This may panic, but it's developer's responsibility
-            attr_conveyor_status
-                .reference
+            attr_conveyor
                 .update_gadget(&self.queue, attr.label, &attr.data)
                 .unwrap();
 
-            attr.needs_update = false;
+            attr.needs_update_value = false;
         }
 
-        let needs_update =
-            self.shared_conveyor.needs_update || attr_conveyor_status.reference.needs_update;
+        let needs_update = self.shared_conveyor.needs_update || attr_conveyor.needs_update;
         if needs_update {
             self.shared_conveyor.update_bundles(&self.device);
-            attr_conveyor_status.reference.update_bundles(&self.device);
+            attr_conveyor.update_bundles(&self.device);
         }
 
         let pipeline = self.pipeline_manager.acquire_pipeline(
@@ -206,13 +206,13 @@ impl<'window> Renderer<'window> {
             mesh.material.as_ref(),
             &Conveyor::collect_bind_group_layouts(vec![
                 &self.shared_conveyor.bundles,
-                &attr_conveyor_status.reference.bundles,
+                &attr_conveyor.bundles,
             ]),
             needs_update,
         );
 
         self.shared_conveyor.attach_bundles(render_pass);
-        attr_conveyor_status.reference.attach_bundles(render_pass);
+        attr_conveyor.attach_bundles(render_pass);
 
         render_pass.set_pipeline(pipeline);
         render_pass.draw(0..mesh.geometry.indices(), 0..1);

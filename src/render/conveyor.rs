@@ -49,7 +49,7 @@ impl<'a> Conveyor<'a> {
         }
     }
 
-    pub fn init_gadget(&mut self, device: &wgpu::Device, desc: &GadgetDescriptor<'a>) {
+    pub fn upsert_gadget(&mut self, device: &wgpu::Device, desc: &GadgetDescriptor<'a>) {
         let buffer = device.create_buffer(&wgpu::BufferDescriptor {
             label: Some(desc.label),
             size: desc.size,

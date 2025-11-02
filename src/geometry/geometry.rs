@@ -9,7 +9,8 @@ pub struct Attribute<'a> {
     pub label: &'a str,
     pub index: GadgetIndex,
     pub data: Vec<u8>,
-    pub needs_update: bool,
+    pub needs_update_value: bool,
+    pub needs_update_buffer: bool,
 }
 
 pub trait GeometryView<'a> {
