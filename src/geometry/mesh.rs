@@ -1,10 +1,11 @@
-use crate::{geometry::GeometryView, material::Material, math::Matrix};
+use crate::{geometry::GeometryView, material::Material};
+use nalgebra::Matrix4;
 
 pub struct Mesh<'attr> {
     pub children: Vec<Mesh<'attr>>,
     pub geometry: Box<dyn GeometryView<'attr>>,
     pub material: Box<dyn Material>,
-    pub matrix: Matrix<f32>,
+    pub matrix: Matrix4<f32>,
 }
 
 impl<'attr> Mesh<'attr> {
@@ -16,7 +17,7 @@ impl<'attr> Mesh<'attr> {
             children: Vec::new(),
             geometry: Box::new(geometry),
             material: Box::new(material),
-            matrix: Matrix::identity(4),
+            matrix: Matrix4::identity(),
         }
     }
 

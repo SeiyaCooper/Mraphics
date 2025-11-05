@@ -64,9 +64,8 @@ impl<'window> ApplicationHandler for MraphicsApp<'window> {
                 event_loop.exit();
             }
             WindowEvent::Resized(size) => {
-                self.camera.aspect = size.width as f32 / size.height as f32;
-                self.camera.update_matrix();
-                self.camera.update_data();
+                self.camera
+                    .set_aspect(size.width as f32 / size.height as f32);
 
                 self.renderer
                     .as_mut()
