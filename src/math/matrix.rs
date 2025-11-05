@@ -1,5 +1,5 @@
 use std::{
-    ops::{Index, IndexMut, Mul},
+    ops::{Add, Index, IndexMut, Mul, Sub},
     vec,
 };
 
@@ -20,11 +20,33 @@ impl<T: Scalar> Matrix<T> {
 
         for i in 0..COL {
             for j in 0..ROW {
-                out[i][j] = self[(i, j)];
+                out[i][j] = self[(j, i)];
             }
         }
 
         out
+    }
+
+    pub fn copy_slice(&mut self, slice: &[&[T]]) {
+        let (row, col) = self.shape();
+
+        for i in 0..row {
+            for j in 0..col {
+                self[(i, j)] = slice[j][i];
+            }
+        }
+    }
+
+    pub fn col_num(&self) -> usize {
+        self.data.len()
+    }
+
+    pub fn row_num(&self) -> usize {
+        self.data[0].len()
+    }
+
+    pub fn shape(&self) -> (usize, usize) {
+        (self.row_num(), self.col_num())
     }
 
     pub fn zeros(row_num: usize, col_num: usize) -> Self {
@@ -41,18 +63,6 @@ impl<T: Scalar> Matrix<T> {
         }
 
         out
-    }
-
-    pub fn col_num(&self) -> usize {
-        self.data.len()
-    }
-
-    pub fn row_num(&self) -> usize {
-        self.data[0].len()
-    }
-
-    pub fn shape(&self) -> (usize, usize) {
-        (self.col_num(), self.row_num())
     }
 
     pub fn rotate_x(ang_rad: f32, n: usize) -> Self
@@ -156,19 +166,103 @@ impl<T: Scalar> Matrix<T> {
             )
         }
     }
+
+    pub fn translate(x: T, y: T, z: T) -> Self {
+        let i = T::ONE;
+        let o = T::default();
+        Matrix::new(vec![
+            Vector::new(vec![i, o, o, o]),
+            Vector::new(vec![o, i, o, o]),
+            Vector::new(vec![o, o, i, o]),
+            Vector::new(vec![x, y, z, i]),
+        ])
+    }
 }
 
 impl<T: Scalar> Index<(usize, usize)> for Matrix<T> {
     type Output = T;
 
     fn index(&self, index: (usize, usize)) -> &Self::Output {
-        &self.data[index.0][index.1]
+        &self.data[index.1][index.0]
     }
 }
 
 impl<T: Scalar> IndexMut<(usize, usize)> for Matrix<T> {
     fn index_mut(&mut self, index: (usize, usize)) -> &mut Self::Output {
-        &mut self.data[index.0][index.1]
+        &mut self.data[index.1][index.0]
+    }
+}
+
+impl<T: Scalar> Index<usize> for Matrix<T> {
+    type Output = Vector<T>;
+
+    fn index(&self, index: usize) -> &Self::Output {
+        &self.data[index]
+    }
+}
+
+impl<T: Scalar> IndexMut<usize> for Matrix<T> {
+    fn index_mut(&mut self, index: usize) -> &mut Self::Output {
+        &mut self.data[index]
+    }
+}
+
+impl<T: Scalar> Add<Matrix<T>> for Matrix<T> {
+    type Output = Matrix<T>;
+
+    fn add(self, rhs: Matrix<T>) -> Self::Output {
+        let (row, col) = self.shape();
+        let mut ans = Matrix::zeros(row, col);
+
+        for i in 0..row {
+            for j in 0..col {
+                ans[j][i] = self[j][i] + rhs[j][i];
+            }
+        }
+
+        ans
+    }
+}
+
+impl<T: Scalar> Sub<Matrix<T>> for Matrix<T> {
+    type Output = Matrix<T>;
+
+    fn sub(self, rhs: Matrix<T>) -> Self::Output {
+        let (row, col) = self.shape();
+        let mut ans = Matrix::zeros(row, col);
+
+        for i in 0..row {
+            for j in 0..col {
+                ans[j][i] = self[j][i] - rhs[j][i];
+            }
+        }
+
+        ans
+    }
+}
+
+impl<T: Scalar> Mul<Matrix<T>> for Matrix<T> {
+    type Output = Matrix<T>;
+
+    fn mul(self, rhs: Matrix<T>) -> Self::Output {
+        let (row, col) = (self.row_num(), rhs.col_num());
+        let mut ans = Matrix::zeros(row, col);
+
+        assert_eq!(
+            self.col_num(),
+            rhs.row_num(),
+            "Matrix dimensions mismatch for multiplication"
+        );
+
+        for i in 0..row {
+            for j in 0..col {
+                for k in 0..row {
+                    ans[j][i] += self[k][i] * rhs[j][k];
+                }
+            }
+        }
+
+        ans
     }
 }
 

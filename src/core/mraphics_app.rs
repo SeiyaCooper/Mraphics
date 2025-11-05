@@ -1,4 +1,4 @@
-use crate::{Scene, math::Camera, render::Renderer};
+use crate::{Scene, math::PerspectiveCamera, render::Renderer};
 use std::sync::Arc;
 use winit::{
     application::ApplicationHandler,
@@ -10,7 +10,7 @@ use winit::{
 pub struct MraphicsApp<'window> {
     pub window: Option<Arc<Window>>,
     pub scene: Scene<'window>,
-    pub camera: Camera,
+    pub camera: PerspectiveCamera,
     pub renderer: Option<Renderer<'window>>,
 }
 
@@ -64,6 +64,10 @@ impl<'window> ApplicationHandler for MraphicsApp<'window> {
                 event_loop.exit();
             }
             WindowEvent::Resized(size) => {
+                self.camera.aspect = size.width as f32 / size.height as f32;
+                self.camera.update_matrix();
+                self.camera.update_data();
+
                 self.renderer
                     .as_mut()
                     .unwrap()
@@ -86,7 +90,7 @@ impl<'window> ApplicationHandler for MraphicsApp<'window> {
 impl<'window> MraphicsApp<'window> {
     pub fn new() -> Self {
         Self {
-            camera: Camera::new(),
+            camera: PerspectiveCamera::default(),
             renderer: None,
             scene: Scene::new(),
             window: None,

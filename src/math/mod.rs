@@ -1,5 +1,5 @@
 mod camera;
-pub use camera::Camera;
+pub use camera::*;
 
 mod traits;
 pub use traits::*;
