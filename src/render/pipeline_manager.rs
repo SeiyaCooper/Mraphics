@@ -1,5 +1,3 @@
-use wgpu::BindGroupLayout;
-
 use crate::material::Material;
 use std::collections::HashMap;
 
@@ -19,7 +17,7 @@ impl PipelineManager {
         device: &wgpu::Device,
         texture_format: wgpu::TextureFormat,
         material: &dyn Material,
-        bind_groups: &[&BindGroupLayout],
+        bind_groups: &[&wgpu::BindGroupLayout],
         force_update: bool,
     ) -> &wgpu::RenderPipeline {
         let pipeline_identifier = material.identifier();
@@ -66,11 +64,7 @@ impl PipelineManager {
                     conservative: false,
                 },
                 depth_stencil: None,
-                multisample: wgpu::MultisampleState {
-                    count: 1,
-                    mask: !0,
-                    alpha_to_coverage_enabled: false,
-                },
+                multisample: wgpu::MultisampleState::default(),
                 multiview: None,
                 cache: None,
             });

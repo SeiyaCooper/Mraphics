@@ -3,13 +3,13 @@ use nalgebra::Matrix4;
 
 pub struct Mesh<'attr> {
     pub children: Vec<Mesh<'attr>>,
-    pub geometry: Box<dyn GeometryView<'attr>>,
-    pub material: Box<dyn Material>,
+    pub geometry: Box<dyn GeometryView<'attr> + 'attr>,
+    pub material: Box<dyn Material + 'attr>,
     pub matrix: Matrix4<f32>,
 }
 
 impl<'attr> Mesh<'attr> {
-    pub fn new<G: GeometryView<'attr> + 'static, M: Material + 'static>(
+    pub fn new<G: GeometryView<'attr> + 'attr, M: Material + 'attr>(
         geometry: G,
         material: M,
     ) -> Self {

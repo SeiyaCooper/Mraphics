@@ -12,6 +12,8 @@ pub struct MraphicsApp<'window> {
     pub scene: Scene<'window>,
     pub camera: PerspectiveCamera,
     pub renderer: Option<Renderer<'window>>,
+
+    pub redraw_callback: Option<Box<dyn FnMut(&mut Self) + 'window>>,
 }
 
 impl<'window> ApplicationHandler for MraphicsApp<'window> {
@@ -79,6 +81,13 @@ impl<'window> ApplicationHandler for MraphicsApp<'window> {
                     .render(&mut self.scene, &self.camera)
                     .unwrap();
 
+                if self.redraw_callback.is_some() {
+                    // Take the callback out to avoid double mutable borrow
+                    let mut callback = self.redraw_callback.take().unwrap();
+                    callback(self);
+                    self.redraw_callback = Some(callback);
+                }
+
                 self.window.as_ref().unwrap().request_redraw();
             }
             _ => {}
@@ -93,6 +102,7 @@ impl<'window> MraphicsApp<'window> {
             renderer: None,
             scene: Scene::new(),
             window: None,
+            redraw_callback: None,
         }
     }
 

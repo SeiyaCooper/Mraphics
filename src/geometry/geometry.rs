@@ -23,13 +23,13 @@ pub trait GeometryView<'a> {
 static GLOBAL_GEOMETRY_ID: AtomicUsize = AtomicUsize::new(0);
 const GEOMETRY_IDENTIFIER_PREFIX: &'static str = "mraphics-geometry-";
 
-pub struct Geometry {
-    pub attributes: Vec<Attribute<'static>>,
+pub struct Geometry<'attr> {
+    pub attributes: Vec<Attribute<'attr>>,
 
     identifier: String,
 }
 
-impl Geometry {
+impl<'attr> Geometry<'attr> {
     pub fn new() -> Self {
         Self {
             attributes: Vec::new(),
@@ -39,12 +39,12 @@ impl Geometry {
     }
 }
 
-impl GeometryView<'static> for Geometry {
-    fn attributes(&self) -> &Vec<Attribute<'static>> {
+impl<'attr> GeometryView<'attr> for Geometry<'attr> {
+    fn attributes(&self) -> &Vec<Attribute<'attr>> {
         &self.attributes
     }
 
-    fn attributes_mut(&mut self) -> &mut Vec<Attribute<'static>> {
+    fn attributes_mut(&mut self) -> &mut Vec<Attribute<'attr>> {
         &mut self.attributes
     }
 
