@@ -31,15 +31,15 @@ pub enum ConveyorError {
     UnknownGadgetLabel,
 }
 
-pub struct Conveyor<'a> {
+pub struct Conveyor {
     pub needs_update: bool,
     pub bundles: Vec<Option<Bundle>>,
 
-    gadgets: HashMap<&'a str, Gadget>,
-    indices: Vec<Option<HashMap<u32, &'a str>>>,
+    gadgets: HashMap<String, Gadget>,
+    indices: Vec<Option<HashMap<u32, String>>>,
 }
 
-impl<'a> Conveyor<'a> {
+impl Conveyor {
     pub fn new() -> Self {
         Self {
             gadgets: HashMap::new(),
@@ -49,7 +49,7 @@ impl<'a> Conveyor<'a> {
         }
     }
 
-    pub fn upsert_gadget(&mut self, device: &wgpu::Device, desc: &GadgetDescriptor<'a>) {
+    pub fn upsert_gadget(&mut self, device: &wgpu::Device, desc: &GadgetDescriptor) {
         let buffer = device.create_buffer(&wgpu::BufferDescriptor {
             label: Some(desc.label),
             size: desc.size,
@@ -62,7 +62,7 @@ impl<'a> Conveyor<'a> {
             ty: desc.ty,
         };
 
-        self.gadgets.insert(desc.label, gadget);
+        self.gadgets.insert(String::from(desc.label), gadget);
 
         let group_index = desc.index.group_index;
 
@@ -76,7 +76,7 @@ impl<'a> Conveyor<'a> {
 
         // SATFTY: Checked upon
         let group_desc = self.indices[group_index].as_mut().unwrap();
-        group_desc.insert(desc.index.binding_index, desc.label);
+        group_desc.insert(desc.index.binding_index, String::from(desc.label));
 
         self.needs_update = true;
     }

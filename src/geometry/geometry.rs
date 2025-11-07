@@ -5,17 +5,17 @@ use std::{
 };
 
 #[derive(Clone, Debug)]
-pub struct Attribute<'a> {
-    pub label: &'a str,
+pub struct Attribute {
+    pub label: String,
     pub index: GadgetIndex,
     pub data: Vec<u8>,
     pub needs_update_value: bool,
     pub needs_update_buffer: bool,
 }
 
-pub trait GeometryView<'a> {
-    fn attributes(&self) -> &Vec<Attribute<'a>>;
-    fn attributes_mut(&mut self) -> &mut Vec<Attribute<'a>>;
+pub trait GeometryView {
+    fn attributes(&self) -> &Vec<Attribute>;
+    fn attributes_mut(&mut self) -> &mut Vec<Attribute>;
     fn indices(&self) -> u32;
     fn identifier(&self) -> &str;
 }
@@ -23,13 +23,13 @@ pub trait GeometryView<'a> {
 static GLOBAL_GEOMETRY_ID: AtomicUsize = AtomicUsize::new(0);
 const GEOMETRY_IDENTIFIER_PREFIX: &'static str = "mraphics-geometry-";
 
-pub struct Geometry<'attr> {
-    pub attributes: Vec<Attribute<'attr>>,
+pub struct Geometry {
+    pub attributes: Vec<Attribute>,
 
     identifier: String,
 }
 
-impl<'attr> Geometry<'attr> {
+impl Geometry {
     pub fn new() -> Self {
         Self {
             attributes: Vec::new(),
@@ -39,12 +39,12 @@ impl<'attr> Geometry<'attr> {
     }
 }
 
-impl<'attr> GeometryView<'attr> for Geometry<'attr> {
-    fn attributes(&self) -> &Vec<Attribute<'attr>> {
+impl GeometryView for Geometry {
+    fn attributes(&self) -> &Vec<Attribute> {
         &self.attributes
     }
 
-    fn attributes_mut(&mut self) -> &mut Vec<Attribute<'attr>> {
+    fn attributes_mut(&mut self) -> &mut Vec<Attribute> {
         &mut self.attributes
     }
 

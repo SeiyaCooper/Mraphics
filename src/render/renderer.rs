@@ -19,8 +19,8 @@ pub struct Renderer<'window> {
     pub clear_color: [f64; 4],
 
     pipeline_manager: PipelineManager,
-    conveyor_manager: ConveyorManager<'window>,
-    shared_conveyor: Conveyor<'window>,
+    conveyor_manager: ConveyorManager,
+    shared_conveyor: Conveyor,
 }
 
 impl<'window> Renderer<'window> {
@@ -91,7 +91,7 @@ impl<'window> Renderer<'window> {
 
     pub fn render<C: Camera>(
         &mut self,
-        scene: &mut Scene<'window>,
+        scene: &mut Scene,
         camera: &C,
     ) -> Result<(), wgpu::SurfaceError> {
         let output = self.surface.get_current_texture()?;
@@ -135,7 +135,7 @@ impl<'window> Renderer<'window> {
             )
             .unwrap();
 
-        scene.traverse_mut(&mut |mesh: &mut Mesh<'window>| {
+        scene.traverse_mut(&mut |mesh: &mut Mesh| {
             self.render_mesh(&mut render_pass, mesh);
         });
 
@@ -148,7 +148,7 @@ impl<'window> Renderer<'window> {
         Ok(())
     }
 
-    pub fn render_mesh(&mut self, render_pass: &mut wgpu::RenderPass, mesh: &mut Mesh<'window>) {
+    pub fn render_mesh(&mut self, render_pass: &mut wgpu::RenderPass, mesh: &mut Mesh) {
         // SAFETY: initialized this gadget in Renderer::new()
         self.shared_conveyor
             .update_gadget(
@@ -167,7 +167,7 @@ impl<'window> Renderer<'window> {
                 attr_conveyor.upsert_gadget(
                     &self.device,
                     &GadgetDescriptor {
-                        label: attr.label,
+                        label: &attr.label,
                         index: attr.index,
                         size: attr.data.len() as u64,
                         usage: wgpu::BufferUsages::STORAGE | wgpu::BufferUsages::COPY_DST,
@@ -184,7 +184,7 @@ impl<'window> Renderer<'window> {
 
             // SAFETY: This may panic, but it's developer's responsibility
             attr_conveyor
-                .update_gadget(&self.queue, attr.label, &attr.data)
+                .update_gadget(&self.queue, &attr.label, &attr.data)
                 .unwrap();
 
             attr.needs_update_value = false;

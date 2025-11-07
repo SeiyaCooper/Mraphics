@@ -1,29 +1,85 @@
-use crate::{Scene, math::PerspectiveCamera, render::Renderer};
-use std::sync::Arc;
+use crate::{
+    Scene,
+    animation::{LogicalTimeline, Timeline},
+    math::PerspectiveCamera,
+    render::Renderer,
+};
+use std::{
+    cell::{Ref, RefCell, RefMut},
+    ops::Deref,
+    rc::Rc,
+    sync::Arc,
+};
 use winit::{
     application::ApplicationHandler,
     event::WindowEvent,
     event_loop::{ActiveEventLoop, EventLoop},
-    window::Window,
+    window::{self, Window},
 };
 
-pub struct MraphicsApp<'window> {
-    pub window: Option<Arc<Window>>,
-    pub scene: Scene<'window>,
-    pub camera: PerspectiveCamera,
-    pub renderer: Option<Renderer<'window>>,
-
-    pub redraw_callback: Option<Box<dyn FnMut(&mut Self) + 'window>>,
+pub struct MraphicsAppHandle {
+    app: Rc<RefCell<MraphicsApp>>,
 }
 
-impl<'window> ApplicationHandler for MraphicsApp<'window> {
-    fn resumed(&mut self, event_loop: &ActiveEventLoop) {
-        let window = event_loop
-            .create_window(Window::default_attributes())
-            .unwrap();
+impl MraphicsAppHandle {
+    pub fn new() -> Self {
+        Self {
+            app: Rc::new(RefCell::new(MraphicsApp::new())),
+        }
+    }
 
-        self.window = Some(Arc::new(window));
+    pub fn with_handle_clone<F: FnMut(MraphicsAppHandle)>(&self, mut closure: F) {
+        closure(self.clone());
+    }
+}
 
+impl Clone for MraphicsAppHandle {
+    fn clone(&self) -> Self {
+        Self {
+            app: self.app.clone(),
+        }
+    }
+}
+
+impl Deref for MraphicsAppHandle {
+    type Target = RefCell<MraphicsApp>;
+    fn deref(&self) -> &Self::Target {
+        &self.app
+    }
+}
+
+pub struct MraphicsApp {
+    pub scene: RefCell<Scene>,
+    pub camera: RefCell<PerspectiveCamera>,
+    pub renderer: RefCell<Option<Renderer<'static>>>,
+}
+
+impl MraphicsApp {
+    pub fn new() -> Self {
+        Self {
+            camera: RefCell::new(PerspectiveCamera::default()),
+            renderer: RefCell::new(None),
+            scene: RefCell::new(Scene::new()),
+        }
+    }
+
+    pub fn scene_mut(&self) -> RefMut<'_, Scene> {
+        self.scene.borrow_mut()
+    }
+
+    pub fn scene(&self) -> Ref<'_, Scene> {
+        self.scene.borrow()
+    }
+
+    pub fn camera_mut(&self) -> RefMut<'_, PerspectiveCamera> {
+        self.camera.borrow_mut()
+    }
+
+    pub fn camera(&self) -> Ref<'_, PerspectiveCamera> {
+        self.camera.borrow()
+    }
+
+    fn resumed(&mut self, window: Arc<Window>) {
         let instance = wgpu::Instance::new(&wgpu::InstanceDescriptor {
             #[cfg(target_arch = "wasm32")]
             backends: wgpu::Backends::GL,
@@ -32,9 +88,7 @@ impl<'window> ApplicationHandler for MraphicsApp<'window> {
             ..Default::default()
         });
 
-        let surface = instance
-            .create_surface(Arc::clone(self.window.as_ref().unwrap()))
-            .unwrap();
+        let surface = instance.create_surface(window).unwrap();
 
         pollster::block_on(async {
             let adapter = instance
@@ -51,14 +105,52 @@ impl<'window> ApplicationHandler for MraphicsApp<'window> {
                 .await
                 .unwrap();
 
-            self.renderer = Some(Renderer::new(surface, device, queue, &adapter));
+            self.renderer = RefCell::new(Some(Renderer::new(surface, device, queue, &adapter)));
         });
+    }
+}
+
+pub struct WindowHandler {
+    pub window: Option<Arc<Window>>,
+    pub app_handle: MraphicsAppHandle,
+
+    pub timeline: RefCell<Box<dyn Timeline>>,
+}
+
+impl WindowHandler {
+    pub fn new(app_handle: MraphicsAppHandle) -> Self {
+        Self {
+            window: None,
+            app_handle,
+            timeline: RefCell::new(Box::new(LogicalTimeline::new())),
+        }
+    }
+}
+
+impl WindowHandler {
+    pub fn run(&mut self) {
+        let event_loop = EventLoop::new().unwrap();
+        event_loop.set_control_flow(winit::event_loop::ControlFlow::Poll);
+        event_loop.run_app(self).unwrap();
+    }
+}
+
+impl ApplicationHandler for WindowHandler {
+    fn resumed(&mut self, event_loop: &ActiveEventLoop) {
+        let window = event_loop
+            .create_window(Window::default_attributes())
+            .unwrap();
+
+        self.window = Some(Arc::new(window));
+        self.app_handle
+            .borrow_mut()
+            .resumed(Arc::clone(self.window.as_ref().unwrap()));
     }
 
     fn window_event(
         &mut self,
         event_loop: &ActiveEventLoop,
-        _window_id: winit::window::WindowId,
+        _window_id: window::WindowId,
         event: WindowEvent,
     ) {
         match event {
@@ -66,49 +158,38 @@ impl<'window> ApplicationHandler for MraphicsApp<'window> {
                 event_loop.exit();
             }
             WindowEvent::Resized(size) => {
-                self.camera
+                self.app_handle
+                    .borrow()
+                    .camera
+                    .borrow_mut()
                     .set_aspect(size.width as f32 / size.height as f32);
 
-                self.renderer
+                self.app_handle
+                    .borrow()
+                    .renderer
+                    .borrow_mut()
                     .as_mut()
                     .unwrap()
                     .resize(size.width, size.height);
             }
             WindowEvent::RedrawRequested => {
-                self.renderer
+                self.timeline.borrow_mut().forward();
+
+                self.app_handle
+                    .borrow()
+                    .renderer
+                    .borrow_mut()
                     .as_mut()
                     .unwrap()
-                    .render(&mut self.scene, &self.camera)
+                    .render(
+                        &mut (*self.app_handle.borrow().scene.borrow_mut()),
+                        &(*self.app_handle.borrow().camera.borrow()),
+                    )
                     .unwrap();
-
-                if self.redraw_callback.is_some() {
-                    // Take the callback out to avoid double mutable borrow
-                    let mut callback = self.redraw_callback.take().unwrap();
-                    callback(self);
-                    self.redraw_callback = Some(callback);
-                }
 
                 self.window.as_ref().unwrap().request_redraw();
             }
             _ => {}
         }
-    }
-}
-
-impl<'window> MraphicsApp<'window> {
-    pub fn new() -> Self {
-        Self {
-            camera: PerspectiveCamera::default(),
-            renderer: None,
-            scene: Scene::new(),
-            window: None,
-            redraw_callback: None,
-        }
-    }
-
-    pub fn run(&mut self) {
-        let event_loop = EventLoop::new().unwrap();
-        event_loop.set_control_flow(winit::event_loop::ControlFlow::Poll);
-        event_loop.run_app(self).unwrap();
     }
 }
