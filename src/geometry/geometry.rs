@@ -37,6 +37,13 @@ impl Geometry {
                 + &GLOBAL_GEOMETRY_ID.fetch_add(1, Relaxed).to_string(),
         }
     }
+
+    pub fn with_id_prefix(prefix: String) -> Self {
+        Self {
+            attributes: Vec::new(),
+            identifier: prefix + &GLOBAL_GEOMETRY_ID.fetch_add(1, Relaxed).to_string(),
+        }
+    }
 }
 
 impl GeometryView for Geometry {
@@ -55,4 +62,27 @@ impl GeometryView for Geometry {
     fn identifier(&self) -> &str {
         &self.identifier
     }
+}
+
+#[macro_export]
+macro_rules! impl_inner_geometry_view {
+    ($type:ty) => {
+        impl $crate::geometry::GeometryView for $type {
+            fn attributes(&self) -> &Vec<Attribute> {
+                self.inner.attributes()
+            }
+
+            fn attributes_mut(&mut self) -> &mut Vec<Attribute> {
+                self.inner.attributes_mut()
+            }
+
+            fn identifier(&self) -> &str {
+                self.inner.identifier()
+            }
+
+            fn indices(&self) -> u32 {
+                self.inner.indices()
+            }
+        }
+    };
 }
