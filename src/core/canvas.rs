@@ -1,6 +1,6 @@
 use crate::{
     Scene,
-    animation::{LogicalTimeline, Timeline},
+    animation::{Animation, LogicalTimeline, Timeline},
     geometry::Mesh,
     math::PerspectiveCamera,
     render::Renderer,
@@ -35,6 +35,12 @@ impl Canvas {
 
     pub fn add_mesh(&self, mesh: Mesh) -> usize {
         self.scene.borrow_mut().add_mesh(mesh)
+    }
+
+    pub fn add_animation<Ani: Animation>(&self, animation: Ani) {
+        self.timeline
+            .borrow_mut()
+            .add_action(animation.into_action(self.scene.clone()));
     }
 
     pub fn with_scene_timeline_handle<
