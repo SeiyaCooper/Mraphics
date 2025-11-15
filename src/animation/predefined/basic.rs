@@ -1,3 +1,5 @@
+use std::{cell::RefCell, rc::Rc};
+
 use crate::{
     animation::{Action, Animation},
     geometry::Mesh,
@@ -83,15 +85,23 @@ impl RotateAxisAngle {
 impl Animation for RotateAxisAngle {
     fn into_action(self, scene: std::rc::Rc<std::cell::RefCell<crate::Scene>>) -> Action {
         let mut out = Action::new();
-        let start_rotation = scene.borrow().get_mesh(self.mesh_index).rotation().clone();
+        let start_rotation = Rc::new(RefCell::new(UnitQuaternion::identity()));
 
+        let scene_clone = scene.clone();
+        let start_rotation_clone = start_rotation.clone();
+
+        out.on_start = Box::new(move || {
+            start_rotation_clone
+                .borrow_mut()
+                .clone_from(scene_clone.borrow().get_mesh(self.mesh_index).rotation());
+        });
         out.on_update = Box::new(move |p, _| {
             scene
                 .borrow_mut()
                 .get_mesh_mut(self.mesh_index)
                 .set_rotation(
                     &(UnitQuaternion::from_axis_angle(&self.axis, self.angle_rad * p)
-                        * start_rotation),
+                        * &*start_rotation.borrow()),
                 );
         });
 

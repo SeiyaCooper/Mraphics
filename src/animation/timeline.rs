@@ -36,7 +36,7 @@ impl LogicalTimeline {
         Self {
             state: TimelineState::WAITING,
             start_time: 0.0,
-            stop_time: 1.0,
+            stop_time: 0.0,
             logical_fps: 60.0,
             current_frame: 0,
             actions: Vec::new(),
@@ -89,6 +89,10 @@ impl Timeline for LogicalTimeline {
     }
 
     fn add_action(&mut self, action: Action) {
+        if action.duration + action.start_time > self.stop_time {
+            self.stop_time = action.duration + action.start_time;
+        }
+
         self.actions.push(action);
     }
 }

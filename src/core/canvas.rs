@@ -5,7 +5,7 @@ use crate::{
     math::PerspectiveCamera,
     render::Renderer,
 };
-use std::{cell::RefCell, rc::Rc, sync::Arc};
+use std::{cell::RefCell, rc::Rc, sync::Arc, time::Duration};
 use winit::{event::WindowEvent, event_loop::EventLoop, window::Window};
 
 pub struct Canvas {
@@ -13,7 +13,9 @@ pub struct Canvas {
     pub camera: PerspectiveCamera,
     pub renderer: Option<Renderer<'static>>,
     pub scene: Rc<RefCell<Scene>>,
+
     pub timeline: Rc<RefCell<Box<dyn Timeline>>>,
+    pub playhead: f32,
 }
 
 impl Canvas {
@@ -23,7 +25,9 @@ impl Canvas {
             camera: PerspectiveCamera::default(),
             renderer: None,
             scene: Rc::new(RefCell::new(Scene::new())),
+
             timeline: Rc::new(RefCell::new(Box::new(LogicalTimeline::new()))),
+            playhead: 0.0,
         }
     }
 
@@ -37,10 +41,18 @@ impl Canvas {
         self.scene.borrow_mut().add_mesh(mesh)
     }
 
-    pub fn add_animation<Ani: Animation>(&self, animation: Ani) {
-        self.timeline
-            .borrow_mut()
-            .add_action(animation.into_action(self.scene.clone()));
+    pub fn queue_animation<Ani: Animation>(&mut self, animation: Ani, duration: &Duration) {
+        let mut action = animation.into_action(self.scene.clone());
+        action.duration = duration.as_secs_f32();
+        action.start_time = self.playhead;
+
+        self.playhead += action.duration;
+
+        self.timeline.borrow_mut().add_action(action);
+    }
+
+    pub fn advance_playhead(&mut self, step: &Duration) {
+        self.playhead += step.as_secs_f32();
     }
 
     pub fn with_scene_timeline_handle<
