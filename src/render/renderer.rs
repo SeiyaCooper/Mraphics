@@ -154,7 +154,7 @@ impl<'window> Renderer<'window> {
             .update_gadget(
                 &self.queue,
                 MODEL_MAT_LABEL,
-                bytemuck::cast_slice(mesh.matrix.as_slice()),
+                bytemuck::cast_slice(mesh.matrix().as_slice()),
             )
             .unwrap();
 
