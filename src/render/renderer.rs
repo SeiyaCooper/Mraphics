@@ -2,7 +2,7 @@ use crate::{
     Scene,
     geometry::Mesh,
     math::Camera,
-    render::{Conveyor, ConveyorManager, PipelineManager, conveyor::GadgetDescriptor},
+    render::{Conveyor, ConveyorManager, GadgetData, PipelineManager, conveyor::GadgetDescriptor},
 };
 
 use crate::constants::{
@@ -19,7 +19,8 @@ pub struct Renderer<'window> {
     pub clear_color: [f64; 4],
 
     pipeline_manager: PipelineManager,
-    conveyor_manager: ConveyorManager,
+    attr_conveyor_manager: ConveyorManager,
+    material_conveyor_manager: ConveyorManager,
     shared_conveyor: Conveyor,
 }
 
@@ -84,7 +85,8 @@ impl<'window> Renderer<'window> {
             queue,
             clear_color: [0., 0., 0., 1.],
             pipeline_manager: PipelineManager::new(),
-            conveyor_manager: ConveyorManager::new(),
+            attr_conveyor_manager: ConveyorManager::new(),
+            material_conveyor_manager: ConveyorManager::new(),
             shared_conveyor,
         }
     }
@@ -159,41 +161,47 @@ impl<'window> Renderer<'window> {
             .unwrap();
 
         let attr_conveyor = self
-            .conveyor_manager
+            .attr_conveyor_manager
             .acquire_attr_conveyor(mesh.geometry.identifier());
 
-        for attr in mesh.geometry.attributes_mut() {
-            if attr.needs_update_buffer {
-                attr_conveyor.upsert_gadget(
-                    &self.device,
-                    &GadgetDescriptor {
-                        label: &attr.label,
-                        index: attr.index,
-                        size: attr.data.len() as u64,
-                        usage: wgpu::BufferUsages::STORAGE | wgpu::BufferUsages::COPY_DST,
-                        ty: wgpu::BufferBindingType::Storage { read_only: true },
-                    },
-                );
+        update_gadgets(
+            &self.device,
+            &self.queue,
+            attr_conveyor,
+            mesh.geometry.attributes_mut(),
+            wgpu::BufferUsages::STORAGE | wgpu::BufferUsages::COPY_DST,
+            wgpu::BufferBindingType::Storage { read_only: true },
+        );
 
-                attr.needs_update_buffer = false;
-            }
+        let material_conveyor = self.material_conveyor_manager.acquire_attr_conveyor(
+            &(mesh.material.identifier().to_string() + mesh.geometry.identifier()),
+        );
 
-            if !attr.needs_update_value {
-                continue;
-            }
+        update_gadgets(
+            &self.device,
+            &self.queue,
+            material_conveyor,
+            mesh.material.attributes_mut(),
+            wgpu::BufferUsages::STORAGE | wgpu::BufferUsages::COPY_DST,
+            wgpu::BufferBindingType::Storage { read_only: true },
+        );
 
-            // SAFETY: This may panic, but it's developer's responsibility
-            attr_conveyor
-                .update_gadget(&self.queue, &attr.label, &attr.data)
-                .unwrap();
+        update_gadgets(
+            &self.device,
+            &self.queue,
+            material_conveyor,
+            mesh.material.uniforms_mut(),
+            wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
+            wgpu::BufferBindingType::Uniform,
+        );
 
-            attr.needs_update_value = false;
-        }
-
-        let needs_update = self.shared_conveyor.needs_update || attr_conveyor.needs_update;
+        let needs_update = self.shared_conveyor.needs_update
+            || attr_conveyor.needs_update
+            || material_conveyor.needs_update;
         if needs_update {
             self.shared_conveyor.update_bundles(&self.device);
             attr_conveyor.update_bundles(&self.device);
+            material_conveyor.update_bundles(&self.device);
         }
 
         let pipeline = self.pipeline_manager.acquire_pipeline(
@@ -203,12 +211,14 @@ impl<'window> Renderer<'window> {
             &Conveyor::collect_bind_group_layouts(vec![
                 &self.shared_conveyor.bundles,
                 &attr_conveyor.bundles,
+                &material_conveyor.bundles,
             ]),
             needs_update,
         );
 
         self.shared_conveyor.attach_bundles(render_pass);
         attr_conveyor.attach_bundles(render_pass);
+        material_conveyor.attach_bundles(render_pass);
 
         render_pass.set_pipeline(pipeline);
         render_pass.draw(0..mesh.geometry.indices(), 0..1);
@@ -219,5 +229,42 @@ impl<'window> Renderer<'window> {
         self.surface_config.height = height;
 
         self.surface.configure(&self.device, &self.surface_config);
+    }
+}
+
+fn update_gadgets(
+    device: &wgpu::Device,
+    queue: &wgpu::Queue,
+    conveyor: &mut Conveyor,
+    gadget_data: &mut Vec<GadgetData>,
+    usage: wgpu::BufferUsages,
+    ty: wgpu::BufferBindingType,
+) {
+    for data in gadget_data {
+        if data.needs_update_buffer {
+            conveyor.upsert_gadget(
+                device,
+                &GadgetDescriptor {
+                    label: &data.label,
+                    index: data.index,
+                    size: data.data.len() as u64,
+                    usage,
+                    ty,
+                },
+            );
+
+            data.needs_update_buffer = false;
+        }
+
+        if !data.needs_update_value {
+            continue;
+        }
+
+        // SAFETY: This may panic, but it's developer's responsibility
+        conveyor
+            .update_gadget(queue, &data.label, &data.data)
+            .unwrap();
+
+        data.needs_update_value = false;
     }
 }

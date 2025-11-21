@@ -1,5 +1,5 @@
 mod material;
-pub use material::Material;
+pub use material::*;
 
 mod basic;
 pub use basic::BasicMaterial;

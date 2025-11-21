@@ -1,21 +1,9 @@
-use crate::render::GadgetIndex;
-use std::{
-    fmt::Debug,
-    sync::atomic::{AtomicUsize, Ordering::Relaxed},
-};
-
-#[derive(Clone, Debug)]
-pub struct Attribute {
-    pub label: String,
-    pub index: GadgetIndex,
-    pub data: Vec<u8>,
-    pub needs_update_value: bool,
-    pub needs_update_buffer: bool,
-}
+use crate::render::GadgetData;
+use std::sync::atomic::{AtomicUsize, Ordering::Relaxed};
 
 pub trait GeometryView {
-    fn attributes(&self) -> &Vec<Attribute>;
-    fn attributes_mut(&mut self) -> &mut Vec<Attribute>;
+    fn attributes(&self) -> &Vec<GadgetData>;
+    fn attributes_mut(&mut self) -> &mut Vec<GadgetData>;
     fn indices(&self) -> u32;
     fn identifier(&self) -> &str;
 }
@@ -24,7 +12,7 @@ static GLOBAL_GEOMETRY_ID: AtomicUsize = AtomicUsize::new(0);
 const GEOMETRY_IDENTIFIER_PREFIX: &'static str = "mraphics-geometry-";
 
 pub struct Geometry {
-    pub attributes: Vec<Attribute>,
+    pub attributes: Vec<GadgetData>,
 
     identifier: String,
 }
@@ -47,11 +35,11 @@ impl Geometry {
 }
 
 impl GeometryView for Geometry {
-    fn attributes(&self) -> &Vec<Attribute> {
+    fn attributes(&self) -> &Vec<GadgetData> {
         &self.attributes
     }
 
-    fn attributes_mut(&mut self) -> &mut Vec<Attribute> {
+    fn attributes_mut(&mut self) -> &mut Vec<GadgetData> {
         &mut self.attributes
     }
 
@@ -68,11 +56,11 @@ impl GeometryView for Geometry {
 macro_rules! impl_inner_geometry_view {
     ($type:ty) => {
         impl $crate::geometry::GeometryView for $type {
-            fn attributes(&self) -> &Vec<Attribute> {
+            fn attributes(&self) -> &Vec<crate::render::GadgetData> {
                 self.inner.attributes()
             }
 
-            fn attributes_mut(&mut self) -> &mut Vec<Attribute> {
+            fn attributes_mut(&mut self) -> &mut Vec<crate::render::GadgetData> {
                 self.inner.attributes_mut()
             }
 

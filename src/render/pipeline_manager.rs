@@ -23,6 +23,8 @@ impl PipelineManager {
         let pipeline_identifier = material.identifier();
 
         if !self.pipeline_pool.contains_key(pipeline_identifier) || force_update {
+            println!("{:?}", bind_groups);
+
             let shader_module = device.create_shader_module(wgpu::ShaderModuleDescriptor {
                 label: Some("Mraphics Shader"),
                 source: wgpu::ShaderSource::Wgsl(material.shader_code().into()),

@@ -20,6 +20,15 @@ pub struct GadgetDescriptor<'a> {
     pub ty: wgpu::BufferBindingType,
 }
 
+#[derive(Clone, Debug)]
+pub struct GadgetData {
+    pub label: String,
+    pub index: GadgetIndex,
+    pub data: Vec<u8>,
+    pub needs_update_value: bool,
+    pub needs_update_buffer: bool,
+}
+
 #[derive(Debug)]
 pub struct Bundle {
     bind_group: wgpu::BindGroup,

@@ -1,5 +1,8 @@
 use crate::render::GadgetIndex;
 
+mod colors;
+pub use colors::*;
+
 pub const VIEW_MAT_LABEL: &'static str = "mraphics-view-mat";
 pub const VIEW_MAT_INDEX: GadgetIndex = GadgetIndex {
     group_index: 0,
@@ -20,12 +23,12 @@ pub const MODEL_MAT_INDEX: GadgetIndex = GadgetIndex {
 
 pub const POSITION_ATTR_LABEL: &'static str = "mraphics-position-attribute";
 pub const POSITION_ATTR_INDEX: GadgetIndex = GadgetIndex {
-    group_index: 1,
+    group_index: 2,
     binding_index: 0,
 };
 
 pub const COLOR_ATTR_LABEL: &'static str = "mraphics-color-attribute";
 pub const COLOR_ATTR_INDEX: GadgetIndex = GadgetIndex {
-    group_index: 1,
+    group_index: 2,
     binding_index: 1,
 };
