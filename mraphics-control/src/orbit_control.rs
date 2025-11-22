@@ -8,8 +8,7 @@ use winit::event::{ElementState, MouseButton, MouseScrollDelta, WindowEvent};
 pub enum OrbitControlState {
     Wait,
     Rotate([f64; 2]),
-    Zoom,
-    Move,
+    Move([f64; 2]),
 }
 
 struct MouseState {
@@ -21,6 +20,7 @@ pub struct OrbitControl {
     mouse_state: MouseState,
 
     pub center: Point3<f32>,
+    start_center: Point3<f32>,
     target_center: Point3<f32>,
 
     pub enable_zoom: bool,
@@ -55,6 +55,7 @@ impl Default for OrbitControl {
             },
 
             center: Point3::origin(),
+            start_center: Point3::origin(),
             target_center: Point3::origin(),
 
             enable_zoom: true,
@@ -97,12 +98,9 @@ impl OrbitControl {
         self.phi = (self.phi + delta_phi).min(self.phi_max).max(self.phi_min);
         self.theta += delta_theta;
 
-        let rotation = Rotation3::from_euler_angles(self.phi, -self.theta, 0.0);
+        self.center = self.center.lerp(&self.target_center, self.move_ease);
 
-        camera.set_center(
-            &(rotation.transform_vector(&Vector3::new(0.0, 0.0, self.radius * self.scale))
-                + &self.center.coords),
-        );
+        camera.set_center(&self.compute_camera_center());
 
         camera.look_at(&self.center);
     }
@@ -116,6 +114,10 @@ impl OrbitControl {
                         self.start_phi = self.phi;
                         self.start_theta = self.theta;
                         self.state = OrbitControlState::Rotate(self.mouse_state.position);
+                    }
+                    MouseButton::Middle => {
+                        self.start_center.clone_from(&self.center);
+                        self.state = OrbitControlState::Move(self.mouse_state.position)
                     }
                     _ => {}
                 },
@@ -145,19 +147,55 @@ impl OrbitControl {
         self.scale = scale;
     }
 
+    pub fn shift(&mut self, delta_x: f32, delta_y: f32) {
+        let camera_center = self.compute_camera_center();
+        let z_axis = self.center.coords - &camera_center;
+        let mut x_axis = z_axis.cross(&Vector3::y());
+        let mut y_axis = x_axis.cross(&z_axis);
+
+        x_axis.set_magnitude(delta_x * self.radius * self.scale);
+        y_axis.set_magnitude(delta_y * self.radius * self.scale);
+
+        self.target_center = self.start_center + &x_axis + &y_axis;
+    }
+
     fn on_mouse_move(&mut self, pos: [f64; 2]) {
         if let OrbitControlState::Rotate(start_pos) = self.state {
-            let delta_phi = self.rotate_speed * (pos[1] - start_pos[1]) as f32;
+            if !self.enable_rotate {
+                return;
+            }
+
+            let delta_phi = self.rotate_speed * (start_pos[1] - pos[1]) as f32;
             let delta_theta = self.rotate_speed * (pos[0] - start_pos[0]) as f32;
             self.rotate(delta_phi, delta_theta);
+        }
+
+        if let OrbitControlState::Move(start_pos) = self.state {
+            if !self.enable_move {
+                return;
+            }
+
+            let delta_x = self.move_speed * (start_pos[0] - pos[0]) as f32;
+            let delta_y = self.move_speed * (pos[1] - start_pos[1]) as f32;
+            self.shift(delta_x, delta_y);
         }
     }
 
     fn on_mouse_wheel(&mut self, positive: bool) {
+        if !self.enable_zoom {
+            return;
+        }
+
         if positive {
             self.zoom_to(self.scale / self.zoom_speed);
         } else {
             self.zoom_to(self.scale * self.zoom_speed);
         }
+    }
+
+    fn compute_camera_center(&self) -> Vector3<f32> {
+        let rotation = Rotation3::from_euler_angles(self.phi, -self.theta, 0.0);
+        rotation.transform_vector(&Vector3::new(0.0, 0.0, self.radius * self.scale))
+            + &self.center.coords
     }
 }

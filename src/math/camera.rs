@@ -93,7 +93,7 @@ impl Camera for PerspectiveCamera {
     }
 
     fn set_center(&mut self, center: &Vector3<f32>) {
-        self.center.copy_from(&-center);
+        self.center.copy_from(&center);
         self.view_transform.translation.vector.copy_from(&-center);
         self.view_mat = self.view_transform.to_homogeneous();
     }
