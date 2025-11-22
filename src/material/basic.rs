@@ -23,7 +23,7 @@ impl BasicMaterial {
         uniforms.push(GadgetData {
             label: COLOR_UNIFORM_LABEL.to_string(),
             index: COLOR_UNIFORM_INDEX,
-            data: bytemuck::cast_slice::<f32, u8>(&vec![1.0, 1.0, 1.0, 1.0]).to_vec(),
+            data: bytemuck::cast_slice::<f64, u8>(&vec![1.0, 1.0, 1.0, 1.0]).to_vec(),
             needs_update_value: true,
             needs_update_buffer: true,
         });
@@ -34,8 +34,9 @@ impl BasicMaterial {
         }
     }
 
-    pub fn with_color(mut self, new_color: &Color) -> Self {
+    pub fn with_color(mut self, new_color: &Color<f32>) -> Self {
         self.uniforms[0].data = bytemuck::cast_slice::<f32, u8>(new_color).to_vec();
+        self.uniforms[0].needs_update_value = true;
         self
     }
 }

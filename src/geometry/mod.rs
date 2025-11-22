@@ -8,3 +8,4 @@ mod mesh;
 pub use mesh::Mesh;
 
 mod sphere;
+pub use sphere::*;

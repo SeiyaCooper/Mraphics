@@ -1,5 +1,5 @@
 use crate::{
-    geometry::{Geometry, GeometryView},
+    geometry::{Geometry, GeometryIndices, GeometryView},
     impl_inner_geometry_view,
     render::GadgetData,
 };
@@ -107,6 +107,7 @@ impl Cube {
             needs_update_value: true,
             needs_update_buffer: true,
         });
+        out.inner.indices = GeometryIndices::Sequential(vertices.len() as u32);
 
         out
     }

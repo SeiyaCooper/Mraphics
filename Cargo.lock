@@ -863,6 +863,7 @@ version = "0.0.1"
 dependencies = [
  "bytemuck",
  "nalgebra",
+ "num-traits",
  "pollster",
  "wgpu",
  "winit",

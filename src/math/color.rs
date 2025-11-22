@@ -1,6 +1,7 @@
-use std::ops::Deref;
+use std::ops::{Deref, Index};
 
 use nalgebra::Vector4;
+use num_traits::{FromPrimitive, Num, NumCast, ToPrimitive};
 
 #[derive(Debug)]
 pub enum ColorError {
@@ -8,14 +9,29 @@ pub enum ColorError {
     InvaildComponent,
 }
 
-pub struct Color {
-    inner: Vector4<f32>,
+pub trait ColorComponent: Copy + Num + NumCast + FromPrimitive + ToPrimitive {}
+impl<T: Copy + Num + NumCast + FromPrimitive + ToPrimitive> ColorComponent for T {}
+
+#[derive(Debug, Clone)]
+pub struct Color<T: ColorComponent> {
+    inner: Vector4<T>,
 }
 
-impl Color {
-    pub const fn new(r: f32, g: f32, b: f32, a: f32) -> Self {
+impl<T: ColorComponent> Color<T> {
+    pub const fn new(r: T, g: T, b: T, a: T) -> Self {
         Self {
             inner: Vector4::new(r, g, b, a),
+        }
+    }
+
+    pub fn from_unchecked<S: ColorComponent>(color: &Color<S>) -> Self {
+        Self {
+            inner: Vector4::new(
+                T::from(color[0]).unwrap(),
+                T::from(color[1]).unwrap(),
+                T::from(color[2]).unwrap(),
+                T::from(color[3]).unwrap(),
+            ),
         }
     }
 
@@ -38,18 +54,26 @@ impl Color {
 
         Ok(Color {
             inner: Vector4::new(
-                r as f32 / 255.0,
-                g as f32 / 255.0,
-                b as f32 / 255.0,
-                a as f32 / 255.0,
+                T::from(r as f64 / 255.0).unwrap(),
+                T::from(g as f64 / 255.0).unwrap(),
+                T::from(b as f64 / 255.0).unwrap(),
+                T::from(a as f64 / 255.0).unwrap(),
             ),
         })
     }
 }
 
-impl Deref for Color {
-    type Target = [f32];
+impl<T: ColorComponent> Deref for Color<T> {
+    type Target = [T];
     fn deref(&self) -> &Self::Target {
         self.inner.as_slice()
+    }
+}
+
+impl<T: ColorComponent> Index<usize> for Color<T> {
+    type Output = T;
+
+    fn index(&self, index: usize) -> &Self::Output {
+        &self.inner[index]
     }
 }

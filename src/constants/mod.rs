@@ -27,6 +27,8 @@ pub const POSITION_ATTR_INDEX: GadgetIndex = GadgetIndex {
     binding_index: 0,
 };
 
+pub const INDEX_BUFFER_LABEL: &'static str = "mraphics-index-buffer";
+
 pub const COLOR_ATTR_LABEL: &'static str = "mraphics-color-attribute";
 pub const COLOR_ATTR_INDEX: GadgetIndex = GadgetIndex {
     group_index: 2,

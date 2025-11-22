@@ -1,13 +1,15 @@
+use wgpu::util::DeviceExt;
+
 use crate::{
     Scene,
-    geometry::Mesh,
-    math::Camera,
+    geometry::{GeometryIndices, Mesh},
+    math::{Camera, Color},
     render::{Conveyor, ConveyorManager, GadgetData, PipelineManager, conveyor::GadgetDescriptor},
 };
 
 use crate::constants::{
-    MODEL_MAT_INDEX, MODEL_MAT_LABEL, PROJECTION_MAT_INDEX, PROJECTION_MAT_LABEL, VIEW_MAT_INDEX,
-    VIEW_MAT_LABEL,
+    INDEX_BUFFER_LABEL, MODEL_MAT_INDEX, MODEL_MAT_LABEL, PROJECTION_MAT_INDEX,
+    PROJECTION_MAT_LABEL, VIEW_MAT_INDEX, VIEW_MAT_LABEL,
 };
 
 pub struct Renderer<'window> {
@@ -15,8 +17,6 @@ pub struct Renderer<'window> {
     pub surface_config: wgpu::SurfaceConfiguration,
     pub device: wgpu::Device,
     pub queue: wgpu::Queue,
-
-    pub clear_color: [f64; 4],
 
     pipeline_manager: PipelineManager,
     attr_conveyor_manager: ConveyorManager,
@@ -36,7 +36,7 @@ impl<'window> Renderer<'window> {
             width: 100,
             height: 100,
             usage: wgpu::TextureUsages::RENDER_ATTACHMENT,
-            format: surface_caps.formats[0],
+            format: wgpu::TextureFormat::Bgra8Unorm,
             present_mode: surface_caps.present_modes[0],
             alpha_mode: surface_caps.alpha_modes[0],
             view_formats: vec![],
@@ -83,7 +83,6 @@ impl<'window> Renderer<'window> {
             surface_config,
             device,
             queue,
-            clear_color: [0., 0., 0., 1.],
             pipeline_manager: PipelineManager::new(),
             attr_conveyor_manager: ConveyorManager::new(),
             material_conveyor_manager: ConveyorManager::new(),
@@ -95,6 +94,7 @@ impl<'window> Renderer<'window> {
         &mut self,
         scene: &mut Scene,
         camera: &C,
+        clear_color: &Color<f64>,
     ) -> Result<(), wgpu::SurfaceError> {
         let output = self.surface.get_current_texture()?;
         let view = output
@@ -114,10 +114,10 @@ impl<'window> Renderer<'window> {
                 resolve_target: None,
                 ops: wgpu::Operations {
                     load: wgpu::LoadOp::Clear(wgpu::Color {
-                        r: self.clear_color[0],
-                        g: self.clear_color[1],
-                        b: self.clear_color[2],
-                        a: self.clear_color[3],
+                        r: clear_color[0],
+                        g: clear_color[1],
+                        b: clear_color[2],
+                        a: clear_color[3],
                     }),
                     store: wgpu::StoreOp::Store,
                 },
@@ -221,7 +221,46 @@ impl<'window> Renderer<'window> {
         material_conveyor.attach_bundles(render_pass);
 
         render_pass.set_pipeline(pipeline);
-        render_pass.draw(0..mesh.geometry.indices(), 0..1);
+
+        match mesh.geometry.indices_mut() {
+            GeometryIndices::Sequential(indices) => {
+                render_pass.draw(0..*indices, 0..1);
+            }
+            GeometryIndices::CustomU16(indices) => {
+                if indices.buffer.is_none() {
+                    indices.buffer.replace(self.device.create_buffer_init(
+                        &wgpu::util::BufferInitDescriptor {
+                            label: Some(INDEX_BUFFER_LABEL),
+                            contents: bytemuck::cast_slice(&indices.data),
+                            usage: wgpu::BufferUsages::INDEX,
+                        },
+                    ));
+                }
+
+                // SAFETY: Checked upon
+                let buffer = indices.buffer.as_ref().unwrap();
+                render_pass.set_index_buffer(buffer.slice(..), wgpu::IndexFormat::Uint16);
+                render_pass.draw_indexed(0..(indices.data.len() as u32), 0, 0..1);
+            }
+            GeometryIndices::CustomU32(indices) => {
+                if indices.buffer.is_none() {
+                    if indices.buffer.is_none() {
+                        indices.buffer.replace(self.device.create_buffer_init(
+                            &wgpu::util::BufferInitDescriptor {
+                                label: Some(INDEX_BUFFER_LABEL),
+                                contents: bytemuck::cast_slice(&indices.data),
+                                usage: wgpu::BufferUsages::INDEX,
+                            },
+                        ));
+                    }
+                }
+
+                // SAFETY: Checked upon
+                let buffer = indices.buffer.as_ref().unwrap();
+                render_pass.set_index_buffer(buffer.slice(..), wgpu::IndexFormat::Uint32);
+                render_pass.draw_indexed(0..(indices.data.len() as u32), 0, 0..1);
+            }
+        }
     }
 
     pub fn resize(&mut self, width: u32, height: u32) {
@@ -241,30 +280,41 @@ fn update_gadgets(
     ty: wgpu::BufferBindingType,
 ) {
     for data in gadget_data {
-        if data.needs_update_buffer {
-            conveyor.upsert_gadget(
-                device,
-                &GadgetDescriptor {
-                    label: &data.label,
-                    index: data.index,
-                    size: data.data.len() as u64,
-                    usage,
-                    ty,
-                },
-            );
-
-            data.needs_update_buffer = false;
-        }
-
-        if !data.needs_update_value {
-            continue;
-        }
-
-        // SAFETY: This may panic, but it's developer's responsibility
-        conveyor
-            .update_gadget(queue, &data.label, &data.data)
-            .unwrap();
-
-        data.needs_update_value = false;
+        update_gadget(device, queue, conveyor, data, usage, ty);
     }
+}
+
+fn update_gadget(
+    device: &wgpu::Device,
+    queue: &wgpu::Queue,
+    conveyor: &mut Conveyor,
+    data: &mut GadgetData,
+    usage: wgpu::BufferUsages,
+    ty: wgpu::BufferBindingType,
+) {
+    if data.needs_update_buffer {
+        conveyor.upsert_gadget(
+            device,
+            &GadgetDescriptor {
+                label: &data.label,
+                index: data.index,
+                size: data.data.len() as u64,
+                usage,
+                ty,
+            },
+        );
+
+        data.needs_update_buffer = false;
+    }
+
+    if !data.needs_update_value {
+        return;
+    }
+
+    // SAFETY: This may panic, but it's developer's responsibility
+    conveyor
+        .update_gadget(queue, &data.label, &data.data)
+        .unwrap();
+
+    data.needs_update_value = false;
 }

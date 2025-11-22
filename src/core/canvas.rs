@@ -2,7 +2,7 @@ use crate::{
     Scene,
     animation::{Animation, LogicalTimeline, Timeline},
     geometry::Mesh,
-    math::PerspectiveCamera,
+    math::{Color, PerspectiveCamera},
     render::Renderer,
 };
 use std::{cell::RefCell, rc::Rc, sync::Arc, time::Duration};
@@ -16,6 +16,8 @@ pub struct Canvas {
 
     pub timeline: Rc<RefCell<Box<dyn Timeline>>>,
     pub playhead: f32,
+
+    pub clear_color: Color<f64>,
 }
 
 impl Canvas {
@@ -28,6 +30,8 @@ impl Canvas {
 
             timeline: Rc::new(RefCell::new(Box::new(LogicalTimeline::new()))),
             playhead: 0.0,
+
+            clear_color: crate::constants::GRAY_E,
         }
     }
 
@@ -129,7 +133,11 @@ impl winit::application::ApplicationHandler for Canvas {
                 self.renderer
                     .as_mut()
                     .unwrap()
-                    .render(&mut self.scene.borrow_mut(), &self.camera)
+                    .render(
+                        &mut self.scene.borrow_mut(),
+                        &self.camera,
+                        &self.clear_color,
+                    )
                     .unwrap();
 
                 self.window.as_ref().unwrap().request_redraw();

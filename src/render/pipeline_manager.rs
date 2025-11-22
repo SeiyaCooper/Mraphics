@@ -23,8 +23,6 @@ impl PipelineManager {
         let pipeline_identifier = material.identifier();
 
         if !self.pipeline_pool.contains_key(pipeline_identifier) || force_update {
-            println!("{:?}", bind_groups);
-
             let shader_module = device.create_shader_module(wgpu::ShaderModuleDescriptor {
                 label: Some("Mraphics Shader"),
                 source: wgpu::ShaderSource::Wgsl(material.shader_code().into()),
@@ -57,7 +55,7 @@ impl PipelineManager {
                     compilation_options: wgpu::PipelineCompilationOptions::default(),
                 }),
                 primitive: wgpu::PrimitiveState {
-                    topology: wgpu::PrimitiveTopology::LineList,
+                    topology: wgpu::PrimitiveTopology::LineStrip,
                     strip_index_format: None,
                     front_face: wgpu::FrontFace::Ccw,
                     cull_mode: None,
