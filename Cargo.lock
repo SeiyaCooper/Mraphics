@@ -870,6 +870,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "mraphics-control"
+version = "0.0.1"
+dependencies = [
+ "mraphics",
+ "nalgebra",
+ "winit",
+]
+
+[[package]]
 name = "naga"
 version = "25.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"

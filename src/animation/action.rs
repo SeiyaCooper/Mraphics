@@ -4,6 +4,7 @@ pub struct Action {
 
     pub on_start: Box<dyn FnMut()>,
     pub on_stop: Box<dyn FnMut()>,
+    pub on_execute: Box<dyn FnMut()>,
     pub on_update: Box<dyn FnMut(f32, f32)>,
 
     started: bool,
@@ -17,6 +18,7 @@ impl Action {
             duration: 1.0,
             on_start: Box::new(|| {}),
             on_stop: Box::new(|| {}),
+            on_execute: Box::new(|| {}),
             on_update: Box::new(|_, _| {}),
 
             started: false,
@@ -25,6 +27,8 @@ impl Action {
     }
 
     pub fn execute(&mut self, progress: f32, elapsed_time: f32) {
+        (self.on_execute)();
+
         if self.stopped || progress < 0.0 {
             return;
         }

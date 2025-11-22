@@ -18,6 +18,9 @@ pub struct Canvas {
     pub playhead: f32,
 
     pub clear_color: Color<f64>,
+
+    pub on_window_event:
+        Box<dyn FnMut(&winit::event_loop::ActiveEventLoop, &WindowEvent, &mut PerspectiveCamera)>,
 }
 
 impl Canvas {
@@ -32,6 +35,8 @@ impl Canvas {
             playhead: 0.0,
 
             clear_color: crate::constants::GRAY_E,
+
+            on_window_event: Box::new(|_, _, _| {}),
         }
     }
 
@@ -144,5 +149,7 @@ impl winit::application::ApplicationHandler for Canvas {
             }
             _ => {}
         }
+
+        (self.on_window_event)(event_loop, &event, &mut self.camera);
     }
 }

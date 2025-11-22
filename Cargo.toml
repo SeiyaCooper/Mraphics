@@ -4,6 +4,10 @@ version = "0.0.1"
 edition = "2024"
 authors = ["SeiyaCooper"]
 
+[workspace]
+members = ["mraphics-control"]
+resolver = "2"
+
 [dependencies]
 wgpu = "25.0.2"
 winit = "0.30.5"

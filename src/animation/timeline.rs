@@ -19,6 +19,7 @@ pub trait Timeline {
 
     fn actions(&self) -> &Vec<Action>;
     fn add_action(&mut self, action: Action);
+    fn add_infinite_action(&mut self, action: Action);
 }
 
 pub struct LogicalTimeline {
@@ -29,6 +30,7 @@ pub struct LogicalTimeline {
     pub current_frame: i32,
 
     actions: Vec<Action>,
+    infinite_actions: Vec<Action>,
 }
 
 impl LogicalTimeline {
@@ -40,6 +42,7 @@ impl LogicalTimeline {
             logical_fps: 60.0,
             current_frame: 0,
             actions: Vec::new(),
+            infinite_actions: Vec::new(),
         }
     }
 
@@ -49,6 +52,10 @@ impl LogicalTimeline {
             let elapsed = current_time - action.start_time;
             let progress = elapsed / action.duration;
             action.execute(progress, elapsed);
+        }
+
+        for action in &mut self.infinite_actions {
+            action.execute(0.0, current_time);
         }
     }
 }
@@ -94,6 +101,10 @@ impl Timeline for LogicalTimeline {
         }
 
         self.actions.push(action);
+    }
+
+    fn add_infinite_action(&mut self, action: Action) {
+        self.infinite_actions.push(action);
     }
 }
 

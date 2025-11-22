@@ -5,6 +5,9 @@ use nalgebra::{Isometry3, Matrix4, Perspective3, Point3, Vector3};
 pub trait Camera {
     fn view_mat_data(&self) -> &[u8];
     fn projection_mat_data(&self) -> &[u8];
+
+    fn look_at(&mut self, target: &Point3<f32>);
+    fn set_center(&mut self, center: &Vector3<f32>);
 }
 
 pub struct PerspectiveCamera {
@@ -23,24 +26,9 @@ impl PerspectiveCamera {
         &self.center
     }
 
-    pub fn set_center(&mut self, center: &Vector3<f32>) {
-        self.center.copy_from(&-center);
-        self.view_transform.translation.vector.copy_from(&-center);
-        self.view_mat = self.view_transform.to_homogeneous();
-    }
-
     pub fn set_rotation(&mut self, rotarion: &Vector3<f32>) {
         self.view_transform =
             Isometry3::new(self.view_transform.translation.vector, rotarion.clone());
-        self.view_mat = self.view_transform.to_homogeneous();
-    }
-
-    pub fn look_at(&mut self, target: &Point3<f32>) {
-        self.view_transform = Isometry3::look_at_rh(
-            &Point3::from_slice(&self.center.as_slice()),
-            target,
-            &self.up,
-        );
         self.view_mat = self.view_transform.to_homogeneous();
     }
 
@@ -93,5 +81,20 @@ impl Camera for PerspectiveCamera {
 
     fn projection_mat_data(&self) -> &[u8] {
         bytemuck::cast_slice(self.proj_mat.as_slice())
+    }
+
+    fn look_at(&mut self, target: &Point3<f32>) {
+        self.view_transform = Isometry3::look_at_rh(
+            &Point3::from_slice(&self.center.as_slice()),
+            target,
+            &self.up,
+        );
+        self.view_mat = self.view_transform.to_homogeneous();
+    }
+
+    fn set_center(&mut self, center: &Vector3<f32>) {
+        self.center.copy_from(&-center);
+        self.view_transform.translation.vector.copy_from(&-center);
+        self.view_mat = self.view_transform.to_homogeneous();
     }
 }
