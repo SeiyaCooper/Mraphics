@@ -14,7 +14,7 @@ impl<T: Copy + Num + NumCast + FromPrimitive + ToPrimitive> ColorComponent for T
 
 #[derive(Debug, Clone)]
 pub struct Color<T: ColorComponent> {
-    inner: Vector4<T>,
+    pub inner: Vector4<T>,
 }
 
 impl<T: ColorComponent> Color<T> {
@@ -60,6 +60,17 @@ impl<T: ColorComponent> Color<T> {
                 T::from(a as f64 / 255.0).unwrap(),
             ),
         })
+    }
+
+    pub fn cast_unchecked<S: ColorComponent>(color: &Color<T>) -> Color<S> {
+        Color {
+            inner: Vector4::new(
+                S::from(color[0]).unwrap(),
+                S::from(color[1]).unwrap(),
+                S::from(color[2]).unwrap(),
+                S::from(color[3]).unwrap(),
+            ),
+        }
     }
 }
 

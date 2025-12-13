@@ -1,15 +1,12 @@
 use wgpu::util::DeviceExt;
 
-use crate::{
-    Scene,
-    geometry::{GeometryIndices, Mesh},
-    math::{Camera, Color},
-    render::{Conveyor, ConveyorManager, GadgetData, PipelineManager, conveyor::GadgetDescriptor},
-};
-
 use crate::constants::{
     INDEX_BUFFER_LABEL, MODEL_MAT_INDEX, MODEL_MAT_LABEL, PROJECTION_MAT_INDEX,
     PROJECTION_MAT_LABEL, VIEW_MAT_INDEX, VIEW_MAT_LABEL,
+};
+use crate::{
+    Camera, Color, Conveyor, ConveyorManager, GadgetData, GadgetDescriptor, GeometryIndices,
+    PipelineManager, RenderInstance, Scene,
 };
 
 pub struct Renderer<'window> {
@@ -137,9 +134,9 @@ impl<'window> Renderer<'window> {
             )
             .unwrap();
 
-        scene.traverse_mut(&mut |mesh: &mut Mesh| {
-            self.render_mesh(&mut render_pass, mesh);
-        });
+        for instance in &mut scene.instances {
+            self.render_instance(&mut render_pass, instance);
+        }
 
         drop(render_pass);
 
@@ -150,38 +147,42 @@ impl<'window> Renderer<'window> {
         Ok(())
     }
 
-    pub fn render_mesh(&mut self, render_pass: &mut wgpu::RenderPass, mesh: &mut Mesh) {
+    pub fn render_instance(
+        &mut self,
+        render_pass: &mut wgpu::RenderPass,
+        instance: &mut RenderInstance,
+    ) {
         // SAFETY: initialized this gadget in Renderer::new()
         self.shared_conveyor
             .update_gadget(
                 &self.queue,
                 MODEL_MAT_LABEL,
-                bytemuck::cast_slice(mesh.matrix().as_slice()),
+                bytemuck::cast_slice(instance.matrix().as_slice()),
             )
             .unwrap();
 
         let attr_conveyor = self
             .attr_conveyor_manager
-            .acquire_attr_conveyor(mesh.geometry.identifier());
+            .acquire_attr_conveyor(&instance.identifier);
 
         update_gadgets(
             &self.device,
             &self.queue,
             attr_conveyor,
-            mesh.geometry.attributes_mut(),
+            &mut instance.geometry.attributes,
             wgpu::BufferUsages::STORAGE | wgpu::BufferUsages::COPY_DST,
             wgpu::BufferBindingType::Storage { read_only: true },
         );
 
         let material_conveyor = self.material_conveyor_manager.acquire_attr_conveyor(
-            &(mesh.material.identifier().to_string() + mesh.geometry.identifier()),
+            &(instance.material.identifier.to_string() + &instance.identifier),
         );
 
         update_gadgets(
             &self.device,
             &self.queue,
             material_conveyor,
-            mesh.material.attributes_mut(),
+            &mut instance.material.attributes,
             wgpu::BufferUsages::STORAGE | wgpu::BufferUsages::COPY_DST,
             wgpu::BufferBindingType::Storage { read_only: true },
         );
@@ -190,7 +191,7 @@ impl<'window> Renderer<'window> {
             &self.device,
             &self.queue,
             material_conveyor,
-            mesh.material.uniforms_mut(),
+            &mut instance.material.uniforms,
             wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
             wgpu::BufferBindingType::Uniform,
         );
@@ -207,7 +208,7 @@ impl<'window> Renderer<'window> {
         let pipeline = self.pipeline_manager.acquire_pipeline(
             &self.device,
             self.surface_config.format,
-            mesh.material.as_ref(),
+            &instance.material,
             &Conveyor::collect_bind_group_layouts(vec![
                 &self.shared_conveyor.bundles,
                 &attr_conveyor.bundles,
@@ -222,7 +223,7 @@ impl<'window> Renderer<'window> {
 
         render_pass.set_pipeline(pipeline);
 
-        match mesh.geometry.indices_mut() {
+        match &mut instance.geometry.indices {
             GeometryIndices::Sequential(indices) => {
                 render_pass.draw(0..*indices, 0..1);
             }

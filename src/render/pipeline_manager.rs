@@ -1,5 +1,6 @@
-use crate::material::Material;
 use std::collections::HashMap;
+
+use crate::MaterialView;
 
 pub struct PipelineManager {
     pub pipeline_pool: HashMap<String, wgpu::RenderPipeline>,
@@ -16,16 +17,16 @@ impl PipelineManager {
         &mut self,
         device: &wgpu::Device,
         texture_format: wgpu::TextureFormat,
-        material: &dyn Material,
+        material: &MaterialView,
         bind_groups: &[&wgpu::BindGroupLayout],
         force_update: bool,
     ) -> &wgpu::RenderPipeline {
-        let pipeline_identifier = material.identifier();
+        let pipeline_identifier = &material.identifier;
 
         if !self.pipeline_pool.contains_key(pipeline_identifier) || force_update {
             let shader_module = device.create_shader_module(wgpu::ShaderModuleDescriptor {
                 label: Some("Mraphics Shader"),
-                source: wgpu::ShaderSource::Wgsl(material.shader_code().into()),
+                source: wgpu::ShaderSource::Wgsl((&material.shader_code).into()),
             });
 
             let render_pipeline_layout =
@@ -70,7 +71,7 @@ impl PipelineManager {
             });
 
             self.pipeline_pool
-                .insert(String::from(material.identifier()), render_pipeline);
+                .insert(String::from(&material.identifier), render_pipeline);
         }
 
         // SAFETY: Checked upon

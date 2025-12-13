@@ -1,11 +1,14 @@
 mod geometry;
 pub use geometry::*;
 
+mod mesh;
+pub use mesh::*;
+
 mod cube;
 pub use cube::*;
 
-mod mesh;
-pub use mesh::Mesh;
+mod instance;
+pub use instance::*;
 
 mod sphere;
 pub use sphere::*;

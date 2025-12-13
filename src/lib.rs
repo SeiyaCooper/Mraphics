@@ -1,14 +1,19 @@
 mod core;
 pub use core::*;
 
-pub mod geometry;
+mod geometry;
+pub use geometry::*;
 
-pub mod render;
+mod render;
+pub use render::*;
 
-pub mod material;
+mod material;
+pub use material::*;
 
-pub mod math;
+mod math;
+pub use math::*;
+
+mod animation;
+pub use animation::*;
 
 pub mod constants;
-
-pub mod animation;

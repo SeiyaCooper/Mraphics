@@ -1,6 +1,6 @@
 use std::f32::consts::PI;
 
-use mraphics::math::Camera;
+use mraphics::Camera;
 use nalgebra::{Point3, Rotation3, Vector3};
 use winit::event::{ElementState, MouseButton, MouseScrollDelta, WindowEvent};
 

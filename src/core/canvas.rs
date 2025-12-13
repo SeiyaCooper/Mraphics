@@ -1,10 +1,4 @@
-use crate::{
-    Scene,
-    animation::{Animation, LogicalTimeline, Timeline},
-    geometry::Mesh,
-    math::{Color, PerspectiveCamera},
-    render::Renderer,
-};
+use crate::{Animation, Color, LogicalTimeline, PerspectiveCamera, Renderer, Scene, Timeline};
 use std::{cell::RefCell, rc::Rc, sync::Arc, time::Duration};
 use winit::{event::WindowEvent, event_loop::EventLoop, window::Window};
 
@@ -44,10 +38,6 @@ impl Canvas {
         let event_loop = EventLoop::new().unwrap();
         event_loop.set_control_flow(winit::event_loop::ControlFlow::Poll);
         event_loop.run_app(self).unwrap();
-    }
-
-    pub fn add_mesh(&self, mesh: Mesh) -> usize {
-        self.scene.borrow_mut().add_mesh(mesh)
     }
 
     pub fn queue_animation<Ani: Animation>(&mut self, animation: Ani, duration: &Duration) {
