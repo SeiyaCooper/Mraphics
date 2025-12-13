@@ -862,6 +862,8 @@ name = "mraphics"
 version = "0.0.1"
 dependencies = [
  "bytemuck",
+ "mraphics-control",
+ "mraphics-core",
  "nalgebra",
  "num-traits",
  "pollster",
@@ -873,8 +875,20 @@ dependencies = [
 name = "mraphics-control"
 version = "0.0.1"
 dependencies = [
- "mraphics",
+ "mraphics-core",
  "nalgebra",
+ "winit",
+]
+
+[[package]]
+name = "mraphics-core"
+version = "0.0.1"
+dependencies = [
+ "bytemuck",
+ "nalgebra",
+ "num-traits",
+ "pollster",
+ "wgpu",
  "winit",
 ]
 

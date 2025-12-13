@@ -3,6 +3,11 @@ use std::sync::atomic::AtomicUsize;
 
 static GLOBAL_MESH_ID: AtomicUsize = AtomicUsize::new(0);
 
+pub trait MeshLike<G: Geometry, M: Material>: Renderable {
+    fn geometry(&self) -> &G;
+    fn material(&self) -> &M;
+}
+
 pub struct Mesh<G: Geometry, M: Material> {
     pub identifier: usize,
     pub geometry: G,
@@ -26,5 +31,15 @@ impl<G: Geometry, M: Material> Renderable for Mesh<G, M> {
 
     fn build_instance(&self) -> RenderInstance {
         RenderInstance::new(self.identifier.to_string(), &self.material)
+    }
+}
+
+impl<G: Geometry, M: Material> MeshLike<G, M> for Mesh<G, M> {
+    fn geometry(&self) -> &G {
+        &self.geometry
+    }
+
+    fn material(&self) -> &M {
+        &self.material
     }
 }

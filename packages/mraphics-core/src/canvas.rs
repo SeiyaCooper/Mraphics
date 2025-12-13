@@ -1,4 +1,7 @@
-use crate::{Animation, Color, LogicalTimeline, PerspectiveCamera, Renderer, Scene, Timeline};
+use crate::{
+    Animation, Color, Geometry, LogicalTimeline, Material, MeshLike, PerspectiveCamera, Renderer,
+    Scene, Timeline,
+};
 use std::{cell::RefCell, rc::Rc, sync::Arc, time::Duration};
 use winit::{event::WindowEvent, event_loop::EventLoop, window::Window};
 
@@ -32,6 +35,27 @@ impl Canvas {
 
             on_window_event: Box::new(|_, _, _| {}),
         }
+    }
+
+    pub fn add_mesh<G: Geometry, M: Material, Mesh: MeshLike<G, M>>(&self, mesh: &Mesh) {
+        self.scene.borrow_mut().add_renderable(mesh);
+
+        mesh.geometry().update_view(
+            &mut self
+                .scene
+                .borrow_mut()
+                .acquire_instance_mut(mesh.identifier())
+                .unwrap()
+                .geometry,
+        );
+        mesh.material().update_view(
+            &mut self
+                .scene
+                .borrow_mut()
+                .acquire_instance_mut(mesh.identifier())
+                .unwrap()
+                .material,
+        );
     }
 
     pub fn run(&mut self) {

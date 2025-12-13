@@ -1,10 +1,13 @@
 [package]
-name = "mraphics-control"
+name = "mraphics-core"
 version = "0.0.1"
 edition = "2024"
 authors = ["SeiyaCooper"]
 
 [dependencies]
+wgpu = "25.0.2"
 winit = "0.30.5"
+pollster = "0.3"
+bytemuck = "1.24.0"
 nalgebra = "0.34.1"
-mraphics = { path = "../" }
+num-traits = "0.2.19"
