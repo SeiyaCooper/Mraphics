@@ -43,7 +43,7 @@ impl Geometry for Sphere {
         let phi_unit = (self.phi_end - self.phi_start) / self.phi_segments as f32;
         let theta_unit = (self.theta_end - self.theta_start) / self.theta_segments as f32;
 
-        for i in 0..self.theta_segments {
+        for i in 0..=self.theta_segments {
             let i = i as f32;
             for j in 0..self.phi_segments {
                 let j = j as f32;
@@ -85,6 +85,8 @@ impl Geometry for Sphere {
                 add_plane(a, b, c, d);
             }
         }
+
+        view.reset();
 
         view.attributes.push(GadgetData {
             label: String::from(crate::constants::POSITION_ATTR_LABEL),
