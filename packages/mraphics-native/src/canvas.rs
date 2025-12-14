@@ -1,4 +1,4 @@
-use crate::{
+use mraphics_core::{
     Animation, Color, Geometry, LogicalTimeline, Material, MeshLike, PerspectiveCamera, Renderer,
     Scene, Timeline,
 };
@@ -31,7 +31,7 @@ impl Canvas {
             timeline: Rc::new(RefCell::new(Box::new(LogicalTimeline::new()))),
             playhead: 0.0,
 
-            clear_color: crate::constants::GRAY_E,
+            clear_color: mraphics_core::constants::GRAY_E,
 
             on_window_event: Box::new(|_, _, _| {}),
         }

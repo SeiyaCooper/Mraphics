@@ -1,14 +1,11 @@
-mod canvas;
-pub use canvas::*;
-
 mod scene;
 pub use scene::*;
 
-mod geometry;
-pub use geometry::*;
-
 mod render;
 pub use render::*;
+
+mod geometry;
+pub use geometry::*;
 
 mod material;
 pub use material::*;

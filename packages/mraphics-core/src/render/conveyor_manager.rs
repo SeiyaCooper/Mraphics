@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use crate::render::Conveyor;
+use crate::Conveyor;
 
 pub struct ConveyorManager {
     pub conveyor_pool: HashMap<String, Conveyor>,
