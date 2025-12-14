@@ -5,7 +5,7 @@ edition = "2024"
 authors = ["SeiyaCooper"]
 
 [dependencies]
-wgpu = "25.0.2"
+wgpu = "27.0.1"
 bytemuck = "1.24.0"
 nalgebra = "0.34.1"
 num-traits = "0.2.19"

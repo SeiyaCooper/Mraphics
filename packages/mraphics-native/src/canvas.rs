@@ -3,6 +3,7 @@ use mraphics_core::{
     Scene, Timeline,
 };
 use std::{cell::RefCell, rc::Rc, sync::Arc, time::Duration};
+use wgpu::web_sys::wasm_bindgen::UnwrapThrowExt;
 use winit::{event::WindowEvent, event_loop::EventLoop, window::Window};
 
 pub struct Canvas {
@@ -60,8 +61,7 @@ impl Canvas {
 
     pub fn run(&mut self) {
         let event_loop = EventLoop::new().unwrap();
-        event_loop.set_control_flow(winit::event_loop::ControlFlow::Poll);
-        event_loop.run_app(self).unwrap();
+        event_loop.run_app(self).unwrap_throw();
     }
 
     pub fn queue_animation<Ani: Animation>(&mut self, animation: Ani, duration: &Duration) {
@@ -92,14 +92,11 @@ impl winit::application::ApplicationHandler for Canvas {
     fn resumed(&mut self, event_loop: &winit::event_loop::ActiveEventLoop) {
         let window = event_loop
             .create_window(Window::default_attributes())
-            .unwrap();
+            .unwrap_throw();
 
         self.window = Some(Arc::new(window));
 
         let instance = wgpu::Instance::new(&wgpu::InstanceDescriptor {
-            #[cfg(target_arch = "wasm32")]
-            backends: wgpu::Backends::GL,
-            #[cfg(not(target_arch = "wasm32"))]
             backends: wgpu::Backends::PRIMARY,
             ..Default::default()
         });

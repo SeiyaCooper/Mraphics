@@ -33,7 +33,7 @@ impl<'window> Renderer<'window> {
             width: 100,
             height: 100,
             usage: wgpu::TextureUsages::RENDER_ATTACHMENT,
-            format: wgpu::TextureFormat::Bgra8Unorm,
+            format: wgpu::TextureFormat::Rgba8Unorm,
             present_mode: surface_caps.present_modes[0],
             alpha_mode: surface_caps.alpha_modes[0],
             view_formats: vec![],
@@ -118,6 +118,7 @@ impl<'window> Renderer<'window> {
                     }),
                     store: wgpu::StoreOp::Store,
                 },
+                depth_slice: None,
             })],
             ..Default::default()
         });

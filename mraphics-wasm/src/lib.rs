@@ -1,11 +1,16 @@
-use wasm_bindgen::prelude::*;
+#![cfg(target_arch = "wasm32")]
 
-#[wasm_bindgen]
-extern "C" {
-    pub fn alert(s: &str);
-}
+mod canvas;
+pub use canvas::*;
 
-#[wasm_bindgen]
-pub fn greet(name: &str) {
-    alert(&format!("Hello, {}!", name));
+use wasm_bindgen::prelude::wasm_bindgen;
+#[wasm_bindgen(start)]
+fn set_up() {
+    console_error_panic_hook::set_once();
+
+    #[cfg(debug_assertions)]
+    {
+        use console_log;
+        console_log::init().unwrap();
+    }
 }
