@@ -4,7 +4,7 @@
     "description": "A animation engine for exploring interactive and intuitive math.",
     "type": "module",
     "types": "wasm-pkg/mraphics.d.ts",
-    "main": "wasm-pkg/mraphics.js",
+    "main": "js/mraphics.js",
     "scripts": {
         "build:wasm": "cargo build --target wasm32-unknown-unknown --target-dir=\"./target\" && wasm-bindgen --target=web --out-dir wasm-pkg --out-name=\"mraphics\" ./target/wasm32-unknown-unknown/debug/mraphics_wasm.wasm"
     },

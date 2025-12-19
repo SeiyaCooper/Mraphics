@@ -87,6 +87,7 @@ impl Canvas {
         event_loop.run_app(self).unwrap();
     }
 
+    #[wasm_bindgen(js_name = "enableOrbitControl")]
     pub fn enable_orbit_control(&mut self) {
         let mut controller = OrbitControl::new();
         self.on_window_event = Box::new(move |_, event, camera| {

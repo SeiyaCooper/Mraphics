@@ -16,6 +16,7 @@ impl Color {
         }
     }
 
+    #[wasm_bindgen(js_name = "fromHEXStr")]
     pub fn from_hex_str(hex_str: &str) -> Self {
         let inner = mraphics::Color::from_hex_str(hex_str).unwrap();
         Self { inner }
