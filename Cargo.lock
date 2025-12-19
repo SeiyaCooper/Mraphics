@@ -904,6 +904,7 @@ version = "0.0.1"
 dependencies = [
  "mraphics-control",
  "mraphics-core",
+ "mraphics-mobject",
  "mraphics-native",
 ]
 
@@ -924,6 +925,14 @@ dependencies = [
  "nalgebra",
  "num-traits",
  "wgpu",
+]
+
+[[package]]
+name = "mraphics-mobject"
+version = "0.0.1"
+dependencies = [
+ "mraphics-core",
+ "wasm-bindgen",
 ]
 
 [[package]]

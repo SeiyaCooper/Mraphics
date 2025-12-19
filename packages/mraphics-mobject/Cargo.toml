@@ -1,0 +1,12 @@
+[package]
+name = "mraphics-mobject"
+version = "0.0.1"
+edition = "2024"
+authors = ["SeiyaCooper"]
+
+[features]
+wasm = ["dep:wasm-bindgen"]
+
+[dependencies]
+wasm-bindgen = { version = "0.2.106", optional = true }
+mraphics-core = { path = "../mraphics-core" }

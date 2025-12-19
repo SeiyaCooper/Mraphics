@@ -30,12 +30,14 @@ pub struct Mesh<G: Geometry, M: Material> {
 impl<G: Geometry, M: Material> Mesh<G, M> {
     pub fn new(geometry: G, material: M) -> Self {
         Self {
-            identifier: MeshIndex::new(
-                GLOBAL_MESH_ID.fetch_add(1, std::sync::atomic::Ordering::Relaxed),
-            ),
+            identifier: Self::acquire_id(),
             geometry: geometry,
             material: material,
         }
+    }
+
+    pub fn acquire_id() -> MeshIndex {
+        MeshIndex::new(GLOBAL_MESH_ID.fetch_add(1, std::sync::atomic::Ordering::Relaxed))
     }
 }
 

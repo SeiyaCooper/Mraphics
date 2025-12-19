@@ -9,11 +9,13 @@ members = ["mraphics-wasm", "packages/*"]
 resolver = "2"
 
 [features]
-default = ["native", "control"]
+default = ["native", "control", "wasm"]
 native = ["dep:mraphics-native"]
 control = ["dep:mraphics-control"]
+wasm = ["mraphics-mobject/wasm"]
 
 [dependencies]
 mraphics-core = { path = "./packages/mraphics-core" }
+mraphics-mobject = { path = "./packages/mraphics-mobject" }
 mraphics-control = { path = "./packages/mraphics-control", optional = true }
 mraphics-native = { path = "./packages/mraphics-native", optional = true }

@@ -1,5 +1,7 @@
 pub use mraphics_core::*;
 
+pub use mraphics_mobject::*;
+
 #[cfg(feature = "native")]
 pub use mraphics_native::*;
 
