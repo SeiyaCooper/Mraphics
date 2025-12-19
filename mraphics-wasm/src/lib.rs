@@ -3,6 +3,9 @@
 mod canvas;
 pub use canvas::*;
 
+mod math;
+pub use math::*;
+
 use wasm_bindgen::prelude::wasm_bindgen;
 #[wasm_bindgen(start)]
 fn set_up() {

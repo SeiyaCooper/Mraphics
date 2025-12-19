@@ -8,8 +8,21 @@ pub trait MeshLike<G: Geometry, M: Material>: Renderable {
     fn material(&self) -> &M;
 }
 
+#[derive(Debug, PartialEq, Eq, Hash)]
+pub struct MeshIndex(usize);
+
+impl MeshIndex {
+    pub fn new(index: usize) -> Self {
+        Self(index)
+    }
+
+    pub fn index(&self) -> usize {
+        self.0
+    }
+}
+
 pub struct Mesh<G: Geometry, M: Material> {
-    pub identifier: usize,
+    pub identifier: MeshIndex,
     pub geometry: G,
     pub material: M,
 }
@@ -17,7 +30,9 @@ pub struct Mesh<G: Geometry, M: Material> {
 impl<G: Geometry, M: Material> Mesh<G, M> {
     pub fn new(geometry: G, material: M) -> Self {
         Self {
-            identifier: GLOBAL_MESH_ID.fetch_add(1, std::sync::atomic::Ordering::Relaxed),
+            identifier: MeshIndex::new(
+                GLOBAL_MESH_ID.fetch_add(1, std::sync::atomic::Ordering::Relaxed),
+            ),
             geometry: geometry,
             material: material,
         }
@@ -26,11 +41,11 @@ impl<G: Geometry, M: Material> Mesh<G, M> {
 
 impl<G: Geometry, M: Material> Renderable for Mesh<G, M> {
     fn identifier(&self) -> usize {
-        self.identifier
+        self.identifier.index()
     }
 
     fn build_instance(&self) -> RenderInstance {
-        RenderInstance::new(self.identifier.to_string(), &self.material)
+        RenderInstance::new(self.identifier.index().to_string(), &self.material)
     }
 }
 

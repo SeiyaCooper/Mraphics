@@ -1,4 +1,7 @@
-use mraphics::{Color, LogicalTimeline, PerspectiveCamera, Renderer, Scene, Timeline};
+use mraphics::{
+    BasicMaterial, Color, Geometry, LogicalTimeline, Material, Mesh, MeshLike, OrbitControl,
+    PerspectiveCamera, Renderable, Renderer, Scene, Sphere, Timeline,
+};
 use std::{cell::RefCell, rc::Rc, sync::Arc};
 use wasm_bindgen::prelude::*;
 use winit::{
@@ -10,17 +13,26 @@ use winit::{
 pub struct Canvas {
     canvas_id: String,
 
-    window: Option<Arc<Window>>,
-    camera: PerspectiveCamera,
-    renderer: Option<Renderer<'static>>,
-    scene: Rc<RefCell<Scene>>,
+    #[wasm_bindgen(skip)]
+    pub window: Option<Arc<Window>>,
+    #[wasm_bindgen(skip)]
+    pub camera: PerspectiveCamera,
+    #[wasm_bindgen(skip)]
+    pub renderer: Option<Renderer<'static>>,
+    #[wasm_bindgen(skip)]
+    pub scene: Rc<RefCell<Scene>>,
 
     proxy: Option<winit::event_loop::EventLoopProxy<Renderer<'static>>>,
 
-    timeline: Rc<RefCell<Box<dyn Timeline>>>,
-    playhead: f32,
+    #[wasm_bindgen(skip)]
+    pub timeline: Rc<RefCell<Box<dyn Timeline>>>,
+
+    pub playhead: f32,
 
     clear_color: Color<f64>,
+
+    on_window_event:
+        Box<dyn FnMut(&winit::event_loop::ActiveEventLoop, &WindowEvent, &mut PerspectiveCamera)>,
 }
 
 #[wasm_bindgen]
@@ -41,17 +53,46 @@ impl Canvas {
             playhead: 0.0,
 
             clear_color: mraphics::constants::GRAY_E,
+
+            on_window_event: Box::new(|_, _, _| {}),
         }
     }
 
-    #[wasm_bindgen]
     pub fn run(&mut self) {
+        let test_mesh = Mesh::new(Sphere::default(), BasicMaterial::new());
+        self.scene.borrow_mut().add_renderable(&test_mesh);
+
+        test_mesh.geometry().update_view(
+            &mut self
+                .scene
+                .borrow_mut()
+                .acquire_instance_mut(test_mesh.identifier())
+                .unwrap()
+                .geometry,
+        );
+        test_mesh.material().update_view(
+            &mut self
+                .scene
+                .borrow_mut()
+                .acquire_instance_mut(test_mesh.identifier())
+                .unwrap()
+                .material,
+        );
+
         let event_loop = EventLoop::with_user_event().build().unwrap();
         event_loop.set_control_flow(winit::event_loop::ControlFlow::Poll);
 
         self.proxy = Some(event_loop.create_proxy());
 
         event_loop.run_app(self).unwrap();
+    }
+
+    pub fn enable_orbit_control(&mut self) {
+        let mut controller = OrbitControl::new();
+        self.on_window_event = Box::new(move |_, event, camera| {
+            controller.handle_window_event(event);
+            controller.update(camera);
+        });
     }
 }
 
@@ -75,7 +116,7 @@ impl winit::application::ApplicationHandler<Renderer<'static>> for Canvas {
         let window_clone = Arc::clone(self.window.as_ref().unwrap());
         wasm_bindgen_futures::spawn_local(async move {
             let instance = wgpu::Instance::new(&wgpu::InstanceDescriptor {
-                backends: wgpu::Backends::GL,
+                backends: wgpu::Backends::BROWSER_WEBGPU,
                 ..Default::default()
             });
 
@@ -149,5 +190,7 @@ impl winit::application::ApplicationHandler<Renderer<'static>> for Canvas {
             }
             _ => {}
         }
+
+        (self.on_window_event)(event_loop, &event, &mut self.camera);
     }
 }
