@@ -1,0 +1,31 @@
+{
+    "name": "mraphics",
+    "version": "0.0.1",
+    "description": "A animation engine for exploring interactive and intuitive math.",
+    "type": "module",
+    "types": "wasm-pkg/mraphics.d.ts",
+    "main": "wasm-pkg/mraphics.js",
+    "scripts": {
+        "build:wasm": "cargo build --target wasm32-unknown-unknown --target-dir=\"./target\" && wasm-bindgen --target=web --out-dir wasm-pkg --out-name=\"mraphics\" ./target/wasm32-unknown-unknown/debug/mraphics_wasm.wasm"
+    },
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/SeiyaCooper/Mraphics.git"
+    },
+    "author": "SeiyaCooper",
+    "license": "Apache-2.0",
+    "bugs": {
+        "url": "https://github.com/SeiyaCooper/Mraphics/issues"
+    },
+    "homepage": "https://github.com/SeiyaCooper/Mraphics#readme",
+    "files": [
+        "js",
+        "wasm-pkg"
+    ],
+    "keywords": [
+        "webgpu",
+        "graphics",
+        "graph",
+        "math"
+    ]
+}

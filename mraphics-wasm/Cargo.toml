@@ -11,7 +11,7 @@ crate-type = ["cdylib"]
 mraphics = { path = "..", features = [] }
 wasm-bindgen = "0.2.106"
 winit = "0.30.5"
-wgpu = { version = "27.0.1", features = ["webgl"] }
+wgpu = "27.0.1"
 wasm-bindgen-futures = "0.4.56"
 console_error_panic_hook = "0.1.7"
 console_log = "1.0.0"
