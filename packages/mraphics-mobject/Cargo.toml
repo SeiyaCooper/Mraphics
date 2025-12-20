@@ -1,12 +1,16 @@
 [package]
 name = "mraphics-mobject"
-version = "0.0.1"
-edition = "2024"
-authors = ["SeiyaCooper"]
+description = "Built-in mobjects(math objects) of Mraphics"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+homepage.workspace = true
+repository.workspace = true
 
 [features]
 wasm = ["dep:wasm-bindgen"]
 
 [dependencies]
 wasm-bindgen = { version = "0.2.106", optional = true }
-mraphics-core = { path = "../mraphics-core" }
+mraphics-core = { workspace = true }

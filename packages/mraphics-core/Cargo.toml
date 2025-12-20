@@ -1,11 +1,15 @@
 [package]
 name = "mraphics-core"
-version = "0.0.1"
-edition = "2024"
-authors = ["SeiyaCooper"]
+description = "The core part of Mraphics"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+homepage.workspace = true
+repository.workspace = true
 
 [dependencies]
-wgpu = "27.0.1"
-bytemuck = "1.24.0"
-nalgebra = "0.34.1"
-num-traits = "0.2.19"
+wgpu = { workspace = true }
+bytemuck = { workspace = true }
+nalgebra = { workspace = true }
+num-traits = { workspace = true }

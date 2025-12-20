@@ -5,5 +5,5 @@ edition = "2024"
 authors = ["SeiyaCooper"]
 
 [dependencies]
-mraphics = { path = "../../" }
-nalgebra = "0.34.1"
+mraphics = { workspace = true }
+nalgebra = { workspace = true }

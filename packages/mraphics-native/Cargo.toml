@@ -1,11 +1,15 @@
 [package]
 name = "mraphics-native"
-version = "0.0.1"
-edition = "2024"
-authors = ["SeiyaCooper"]
+description = "The part of Mraphics that runs on native platforms"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+homepage.workspace = true
+repository.workspace = true
 
 [dependencies]
 wgpu = "27.0.1"
 winit = "0.30.5"
 pollster = "0.3"
-mraphics-core = { path = "../mraphics-core" }
+mraphics-core = { workspace = true }
