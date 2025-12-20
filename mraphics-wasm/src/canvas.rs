@@ -52,7 +52,7 @@ impl Canvas {
             timeline: Rc::new(RefCell::new(Box::new(LogicalTimeline::new()))),
             playhead: 0.0,
 
-            clear_color: mraphics::constants::GRAY_E,
+            clear_color: Color::from_hex_str(mraphics::constants::GRAY_E).unwrap(),
 
             on_window_event: Box::new(|_, _, _| {}),
         }

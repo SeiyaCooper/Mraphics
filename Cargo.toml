@@ -1,6 +1,6 @@
 [package]
 name = "mraphics"
-version = "0.0.1"
+version = "0.0.2"
 edition = "2024"
 authors = ["SeiyaCooper"]
 license = "Apache-2.0"
@@ -8,7 +8,7 @@ homepage = "https://github.com/SeiyaCooper/Mraphics"
 repository = "https://github.com/SeiyaCooper/Mraphics"
 readme = "README.md"
 categories = ["graphics", "mathematics", "rendering"]
-description = "A animation engine for exploring interactive and intuitive math"
+description = "A rendering engine for exploring interactive and intuitive math"
 keywords = ["webgpu", "graphics", "graph", "math"]
 
 [workspace]
@@ -16,7 +16,6 @@ members = ["mraphics-wasm", "packages/*", "examples/*"]
 resolver = "2"
 
 [workspace.package]
-version = "0.0.1"
 edition = "2024"
 authors = ["SeiyaCooper"]
 license = "Apache-2.0"
@@ -24,7 +23,7 @@ homepage = "https://github.com/SeiyaCooper/Mraphics"
 repository = "https://github.com/SeiyaCooper/Mraphics"
 
 [workspace.dependencies]
-mraphics = { path = ".", version = "0.0.1" }
+mraphics = { path = ".", version = "0.0.2" }
 mraphics-core = { path = "./packages/mraphics-core", version = "0.0.1" }
 mraphics-mobject = { path = "./packages/mraphics-mobject", version = "0.0.1" }
 wgpu = "27.0.1"

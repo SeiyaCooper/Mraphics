@@ -900,7 +900,7 @@ dependencies = [
 
 [[package]]
 name = "mraphics"
-version = "0.0.1"
+version = "0.0.2"
 dependencies = [
  "mraphics-control",
  "mraphics-core",

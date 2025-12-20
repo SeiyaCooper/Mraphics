@@ -1,12 +1,13 @@
 {
     "name": "mraphics",
-    "version": "0.0.1",
-    "description": "A animation engine for exploring interactive and intuitive math.",
+    "version": "0.0.2",
+    "description": "A rendering engine for exploring interactive and intuitive math",
     "type": "module",
     "types": "wasm-pkg/mraphics.d.ts",
     "main": "js/mraphics.js",
     "scripts": {
-        "build:wasm": "cargo build --target wasm32-unknown-unknown --target-dir=\"./target\" && wasm-bindgen --target=web --out-dir wasm-pkg --out-name=\"mraphics\" ./target/wasm32-unknown-unknown/debug/mraphics_wasm.wasm"
+        "build:wasm": "cargo build --target wasm32-unknown-unknown --target-dir=\"./target\" && wasm-bindgen --target=web --out-dir wasm-pkg --out-name=\"mraphics\" ./target/wasm32-unknown-unknown/debug/mraphics_wasm.wasm",
+        "prepublishOnly": "cargo check --target wasm32-unknown-unknown && yarn build:wasm"
     },
     "repository": {
         "type": "git",
