@@ -1,8 +1,12 @@
 [package]
 name = "mraphics-wasm"
-version = "0.0.1"
-edition = "2024"
-authors = ["SeiyaCooper"]
+description = "The WebAssembly binding of Mraphics"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+homepage.workspace = true
+repository.workspace = true
 
 [lib]
 crate-type = ["cdylib"]
