@@ -86,7 +86,7 @@ impl Geometry for Sphere {
             }
         }
 
-        view.reset();
+        view.reset_vertices();
 
         view.attributes.push(GadgetData {
             label: String::from(crate::constants::POSITION_ATTR_LABEL),

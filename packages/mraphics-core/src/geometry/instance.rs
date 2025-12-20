@@ -1,4 +1,7 @@
-use crate::{GeometryView, Material, MaterialView};
+use crate::{
+    GadgetData, GeometryView, Material, MaterialView,
+    constants::{MODEL_MAT_INDEX, MODEL_MAT_LABEL},
+};
 use nalgebra::{Isometry3, Matrix4, Translation3, UnitQuaternion, UnitVector3, Vector3};
 
 pub struct RenderInstance {
@@ -62,6 +65,16 @@ impl RenderInstance {
         &self.isometry.translation
     }
 
+    pub fn move_to(&mut self, position: &Vector3<f32>) {
+        self.isometry.translation.vector = *position;
+        self.update_matrix();
+    }
+
+    pub fn move_by(&mut self, offset: &Vector3<f32>) {
+        self.isometry.translation.vector += offset;
+        self.update_matrix();
+    }
+
     pub fn scale(&self) -> &Vector3<f32> {
         &self.scale
     }
@@ -78,6 +91,15 @@ impl RenderInstance {
 
     fn update_matrix(&mut self) {
         self.matrix = self.isometry.to_homogeneous() * Matrix4::new_nonuniform_scaling(&self.scale);
+
+        self.geometry.reset_uniforms();
+        self.geometry.uniforms.push(GadgetData {
+            label: MODEL_MAT_LABEL.to_string(),
+            index: MODEL_MAT_INDEX,
+            data: bytemuck::cast_slice(self.matrix.as_slice()).to_vec(),
+            needs_update_value: true,
+            needs_update_buffer: true,
+        })
     }
 }
 

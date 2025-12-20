@@ -928,6 +928,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "mraphics-example-colors"
+version = "0.0.1"
+dependencies = [
+ "mraphics",
+ "nalgebra",
+]
+
+[[package]]
 name = "mraphics-mobject"
 version = "0.0.1"
 dependencies = [

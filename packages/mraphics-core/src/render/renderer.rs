@@ -1,8 +1,7 @@
 use wgpu::util::DeviceExt;
 
 use crate::constants::{
-    INDEX_BUFFER_LABEL, MODEL_MAT_INDEX, MODEL_MAT_LABEL, PROJECTION_MAT_INDEX,
-    PROJECTION_MAT_LABEL, VIEW_MAT_INDEX, VIEW_MAT_LABEL,
+    INDEX_BUFFER_LABEL, PROJECTION_MAT_INDEX, PROJECTION_MAT_LABEL, VIEW_MAT_INDEX, VIEW_MAT_LABEL,
 };
 use crate::{
     Camera, Color, Conveyor, ConveyorManager, GadgetData, GadgetDescriptor, GeometryIndices,
@@ -58,17 +57,6 @@ impl<'window> Renderer<'window> {
             &GadgetDescriptor {
                 label: PROJECTION_MAT_LABEL,
                 index: PROJECTION_MAT_INDEX,
-                size: 4 * 4 * 4,
-                usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
-                ty: wgpu::BufferBindingType::Uniform,
-            },
-        );
-
-        shared_conveyor.upsert_gadget(
-            &device,
-            &GadgetDescriptor {
-                label: MODEL_MAT_LABEL,
-                index: MODEL_MAT_INDEX,
                 size: 4 * 4 * 4,
                 usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
                 ty: wgpu::BufferBindingType::Uniform,
@@ -153,15 +141,6 @@ impl<'window> Renderer<'window> {
         render_pass: &mut wgpu::RenderPass,
         instance: &mut RenderInstance,
     ) {
-        // SAFETY: initialized this gadget in Renderer::new()
-        self.shared_conveyor
-            .update_gadget(
-                &self.queue,
-                MODEL_MAT_LABEL,
-                bytemuck::cast_slice(instance.matrix().as_slice()),
-            )
-            .unwrap();
-
         let attr_conveyor = self
             .attr_conveyor_manager
             .acquire_attr_conveyor(&instance.identifier);
@@ -173,6 +152,15 @@ impl<'window> Renderer<'window> {
             &mut instance.geometry.attributes,
             wgpu::BufferUsages::STORAGE | wgpu::BufferUsages::COPY_DST,
             wgpu::BufferBindingType::Storage { read_only: true },
+        );
+
+        update_gadgets(
+            &self.device,
+            &self.queue,
+            attr_conveyor,
+            &mut instance.geometry.uniforms,
+            wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
+            wgpu::BufferBindingType::Uniform,
         );
 
         let material_conveyor = self.material_conveyor_manager.acquire_attr_conveyor(

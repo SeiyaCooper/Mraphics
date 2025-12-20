@@ -9,9 +9,21 @@ pub struct Point3D {
     #[cfg_attr(feature = "wasm", wasm_bindgen(skip))]
     pub identifier: MeshIndex,
 
-    geometry: Sphere,
+    #[cfg_attr(feature = "wasm", wasm_bindgen(skip))]
+    pub geometry: Sphere,
 
-    material: BasicMaterial,
+    #[cfg_attr(feature = "wasm", wasm_bindgen(skip))]
+    pub material: BasicMaterial,
+}
+
+#[cfg_attr(feature = "wasm", wasm_bindgen)]
+impl Point3D {
+    #[cfg_attr(feature = "wasm", wasm_bindgen(js_name = "withRadius"))]
+    pub fn with_radius(mut self, radius: f32) -> Self {
+        self.radius = radius;
+        self.geometry.radius = radius;
+        self
+    }
 }
 
 impl Default for Point3D {

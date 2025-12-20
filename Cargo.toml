@@ -5,7 +5,7 @@ edition = "2024"
 authors = ["SeiyaCooper"]
 
 [workspace]
-members = ["mraphics-wasm", "packages/*"]
+members = ["mraphics-wasm", "packages/*", "examples/*"]
 resolver = "2"
 
 [features]

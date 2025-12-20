@@ -31,7 +31,7 @@ impl Canvas {
             timeline: Rc::new(RefCell::new(Box::new(LogicalTimeline::new()))),
             playhead: 0.0,
 
-            clear_color: mraphics_core::constants::GRAY_E,
+            clear_color: Color::from_hex_str(mraphics_core::constants::GRAY_E).unwrap(),
 
             on_window_event: Box::new(|_, _, _| {}),
         }
@@ -90,7 +90,7 @@ impl Canvas {
 impl winit::application::ApplicationHandler for Canvas {
     fn resumed(&mut self, event_loop: &winit::event_loop::ActiveEventLoop) {
         let window = event_loop
-            .create_window(Window::default_attributes())
+            .create_window(Window::default_attributes().with_title("mraphics window"))
             .unwrap();
 
         self.window = Some(Arc::new(window));

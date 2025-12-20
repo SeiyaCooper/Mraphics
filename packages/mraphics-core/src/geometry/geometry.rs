@@ -26,6 +26,7 @@ pub enum GeometryIndices {
 #[derive(Debug)]
 pub struct GeometryView {
     pub attributes: Vec<GadgetData>,
+    pub uniforms: Vec<GadgetData>,
     pub indices: GeometryIndices,
 }
 
@@ -34,6 +35,7 @@ impl GeometryView {
         Self {
             indices: GeometryIndices::Sequential(0),
             attributes: Vec::new(),
+            uniforms: Vec::new(),
         }
     }
 
@@ -47,9 +49,18 @@ impl GeometryView {
         self
     }
 
-    pub fn reset(&mut self) {
+    pub fn with_uniforms(mut self, uniforms: Vec<GadgetData>) -> Self {
+        self.uniforms = uniforms;
+        self
+    }
+
+    pub fn reset_vertices(&mut self) {
         self.attributes = Vec::new();
         self.indices = GeometryIndices::Sequential(0);
+    }
+
+    pub fn reset_uniforms(&mut self) {
+        self.uniforms = Vec::new();
     }
 }
 

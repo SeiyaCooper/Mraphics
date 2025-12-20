@@ -1,43 +1,42 @@
-use crate::math::Color;
+pub const WHITE: &'static str = "#ffffffff";
+pub const BLACK: &'static str = "#000000ff";
+pub const TRANSPARENT: &'static str = "#00000000";
 
-pub const WHITE: Color<f64> = Color::new(1.0, 1.0, 1.0, 1.0); // rgba(255, 255, 255, 1)
-pub const BLACK: Color<f64> = Color::new(0.0, 0.0, 0.0, 1.0); // rgba(0, 0, 0, 1)
-pub const TRANSPARENT: Color<f64> = Color::new(0.0, 0.0, 0.0, 0.0); // rgba(0, 0, 0, 0)
+pub const RED_A: &'static str = "#ffccccff";
+pub const RED_B: &'static str = "#ff9999ff";
+pub const RED_C: &'static str = "#ff6664ff";
+pub const RED_D: &'static str = "#da2b2bff";
+pub const RED_E: &'static str = "#b82323ff";
+pub const RED: &'static str = RED_C;
 
-pub const RED_A: Color<f64> = Color::new(0.898, 0.612, 0.612, 1.0); // rgba(229, 156, 156, 1)
-pub const RED_B: Color<f64> = Color::new(0.933, 0.475, 0.475, 1.0); // rgba(238, 121, 121, 1)
-pub const RED_C: Color<f64> = Color::new(0.949, 0.314, 0.314, 1.0); // rgba(242, 80, 80, 1)
-pub const RED_D: Color<f64> = Color::new(0.906, 0.196, 0.196, 1.0); // rgba(231, 50, 50, 1)
-pub const RED_E: Color<f64> = Color::new(0.843, 0.118, 0.118, 1.0); // rgba(215, 30, 30, 1)
-pub const RED: Color<f64> = RED_C;
+pub const BLUE_A: &'static str = "#99ccffff";
+pub const BLUE_B: &'static str = "#66b3ffff";
+pub const BLUE_C: &'static str = "#3599fdff";
+pub const BLUE_D: &'static str = "#007fffff";
+pub const BLUE_E: &'static str = "#0f4ae1ff";
+pub const BLUE: &'static str = BLUE_C;
 
-pub const BLUE_A: Color<f64> = Color::new(0.353, 0.737, 0.984, 1.0); // rgba(90, 188, 251, 1)
-pub const BLUE_B: Color<f64> = Color::new(0.212, 0.675, 0.976, 1.0); // rgba(54, 172, 249, 1)
-pub const BLUE_C: Color<f64> = Color::new(0.082, 0.624, 0.976, 1.0); // rgba(21, 159, 249, 1)
-pub const BLUE_D: Color<f64> = Color::new(0.020, 0.541, 0.878, 1.0); // rgba(5, 138, 224, 1)
-pub const BLUE_E: Color<f64> = Color::new(0.071, 0.490, 0.765, 1.0); // rgba(18, 125, 195, 1)
-pub const BLUE: Color<f64> = BLUE_C;
+pub const YELLOW_A: &'static str = "#fff0ccff";
+pub const YELLOW_B: &'static str = "#ffdd99ff";
+pub const YELLOW_C: &'static str = "#ffcc66ff";
+pub const YELLOW_D: &'static str = "#f0aa33ff";
+pub const YELLOW_E: &'static str = "#d28c19ff";
+pub const YELLOW: &'static str = YELLOW_C;
 
-pub const YELLOW_A: Color<f64> = Color::new(0.969, 0.816, 0.475, 1.0); // rgba(247, 208, 121, 1)
-pub const YELLOW_B: Color<f64> = Color::new(1.0, 0.761, 0.208, 1.0); // rgba(255, 194, 53, 1)
-pub const YELLOW_C: Color<f64> = Color::new(0.969, 0.718, 0.133, 1.0); // rgba(247, 183, 34, 1)
-pub const YELLOW_D: Color<f64> = Color::new(0.878, 0.651, 0.129, 1.0); // rgba(224, 166, 33, 1)
-pub const YELLOW_E: Color<f64> = Color::new(0.773, 0.561, 0.075, 1.0); // rgba(197, 143, 19, 1)
-pub const YELLOW: Color<f64> = YELLOW_C;
+pub const GREEN_A: &'static str = "#ccffccff";
+pub const GREEN_B: &'static str = "#99ff99ff";
+pub const GREEN_C: &'static str = "#64f25fff";
+pub const GREEN_D: &'static str = "#32e232ff";
+pub const GREEN_E: &'static str = "#0cb00cff";
+pub const GREEN: &'static str = GREEN_C;
 
-pub const GREEN_A: Color<f64> = Color::new(0.545, 0.957, 0.718, 1.0); // rgba(139, 244, 183, 1)
-pub const GREEN_B: Color<f64> = Color::new(0.263, 0.976, 0.561, 1.0); // rgba(67, 249, 143, 1)
-pub const GREEN_C: Color<f64> = Color::new(0.055, 0.933, 0.420, 1.0); // rgba(14, 238, 107, 1)
-pub const GREEN_D: Color<f64> = Color::new(0.059, 0.843, 0.384, 1.0); // rgba(15, 215, 98, 1)
-pub const GREEN_E: Color<f64> = Color::new(0.016, 0.729, 0.314, 1.0); // rgba(4, 186, 80, 1)
-pub const GREEN: Color<f64> = GREEN_C;
+pub const GRAY_A: &'static str = "#f0f0f0ff";
+pub const GRAY_B: &'static str = "#ccccccff";
+pub const GRAY_C: &'static str = "#979797ff";
+pub const GRAY_D: &'static str = "#4b4b4bff";
+pub const GRAY_E: &'static str = "#262628ff";
+pub const GRAY: &'static str = GRAY_C;
 
-pub const GRAY_A: Color<f64> = Color::new(0.827, 0.827, 0.827, 1.0); // rgba(211, 211, 211, 1)
-pub const GRAY_B: Color<f64> = Color::new(0.710, 0.710, 0.710, 1.0); // rgba(181, 181, 181, 1)
-pub const GRAY_C: Color<f64> = Color::new(0.569, 0.569, 0.569, 1.0); // rgba(145, 145, 145, 1)
-pub const GRAY_D: Color<f64> = Color::new(0.278, 0.278, 0.278, 1.0); // rgba(71, 71, 71, 1)
-pub const GRAY_E: Color<f64> = Color::new(0.149, 0.149, 0.157, 1.0); // rgba(38, 38, 40, 1)
-pub const GRAY: Color<f64> = GRAY_C;
-
-pub const COOPER_ORANGE: Color<f64> = Color::new(1.0, 0.576, 0.427, 1.0); // rgba(255, 147, 109, 1)
-pub const SEIYA_PINK: Color<f64> = Color::new(0.945, 0.557, 0.714, 1.0); // rgba(241, 142, 182, 1)
+pub const COOPER_ORANGE: &'static str = "#ff936d";
+pub const SEIYA_PINK: &'static str = "#f79ab9";
+pub const BINARY_GOLD: &'static str = "#fbce71";
