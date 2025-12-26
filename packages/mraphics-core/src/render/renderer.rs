@@ -15,7 +15,7 @@ pub struct Renderer<'window> {
     pub queue: wgpu::Queue,
 
     pipeline_manager: PipelineManager,
-    attr_conveyor_manager: ConveyorManager,
+    mesh_conveyor_manager: ConveyorManager,
     material_conveyor_manager: ConveyorManager,
     shared_conveyor: Conveyor,
 }
@@ -69,7 +69,7 @@ impl<'window> Renderer<'window> {
             device,
             queue,
             pipeline_manager: PipelineManager::new(),
-            attr_conveyor_manager: ConveyorManager::new(),
+            mesh_conveyor_manager: ConveyorManager::new(),
             material_conveyor_manager: ConveyorManager::new(),
             shared_conveyor,
         }
@@ -141,14 +141,14 @@ impl<'window> Renderer<'window> {
         render_pass: &mut wgpu::RenderPass,
         instance: &mut RenderInstance,
     ) {
-        let attr_conveyor = self
-            .attr_conveyor_manager
+        let mesh_conveyor = self
+            .mesh_conveyor_manager
             .acquire_attr_conveyor(&instance.identifier);
 
         update_gadgets(
             &self.device,
             &self.queue,
-            attr_conveyor,
+            mesh_conveyor,
             &mut instance.geometry.attributes,
             wgpu::BufferUsages::STORAGE | wgpu::BufferUsages::COPY_DST,
             wgpu::BufferBindingType::Storage { read_only: true },
@@ -157,7 +157,7 @@ impl<'window> Renderer<'window> {
         update_gadgets(
             &self.device,
             &self.queue,
-            attr_conveyor,
+            mesh_conveyor,
             &mut instance.geometry.uniforms,
             wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
             wgpu::BufferBindingType::Uniform,
@@ -186,11 +186,11 @@ impl<'window> Renderer<'window> {
         );
 
         let needs_update = self.shared_conveyor.needs_update
-            || attr_conveyor.needs_update
+            || mesh_conveyor.needs_update
             || material_conveyor.needs_update;
         if needs_update {
             self.shared_conveyor.update_bundles(&self.device);
-            attr_conveyor.update_bundles(&self.device);
+            mesh_conveyor.update_bundles(&self.device);
             material_conveyor.update_bundles(&self.device);
         }
 
@@ -200,14 +200,14 @@ impl<'window> Renderer<'window> {
             &instance.material,
             &Conveyor::collect_bind_group_layouts(vec![
                 &self.shared_conveyor.bundles,
-                &attr_conveyor.bundles,
+                &mesh_conveyor.bundles,
                 &material_conveyor.bundles,
             ]),
             needs_update,
         );
 
         self.shared_conveyor.attach_bundles(render_pass);
-        attr_conveyor.attach_bundles(render_pass);
+        mesh_conveyor.attach_bundles(render_pass);
         material_conveyor.attach_bundles(render_pass);
 
         render_pass.set_pipeline(pipeline);
