@@ -112,3 +112,136 @@ impl Animation<'static> for RotateAxisAngle {
         out
     }
 }
+
+pub struct MoveTo {
+    pub mesh_index: usize,
+    pub target_place: Vector3<f32>,
+}
+
+impl MoveTo {
+    pub fn new<R: Renderable>(mesh: &R, target_place: Vector3<f32>) -> Self {
+        Self {
+            mesh_index: mesh.identifier(),
+            target_place,
+        }
+    }
+}
+
+impl Animation<'static> for MoveTo {
+    fn into_action(self, scene: std::rc::Rc<std::cell::RefCell<crate::Scene>>) -> Action<'static> {
+        let mut out = Action::new();
+        let start_place = Rc::new(RefCell::new(Vector3::default()));
+
+        let scene_clone = scene.clone();
+        let start_place_clone = start_place.clone();
+
+        out.on_start = Box::new(move || {
+            start_place_clone.borrow_mut().clone_from(
+                &scene_clone
+                    .borrow()
+                    .acquire_instance_unchecked(self.mesh_index)
+                    .translation()
+                    .vector,
+            );
+        });
+        out.on_update = Box::new(move |p, _| {
+            scene
+                .borrow_mut()
+                .acquire_instance_mut_unchecked(self.mesh_index)
+                .move_to(
+                    &(*start_place.borrow() + &((self.target_place - *start_place.borrow()) * p)),
+                );
+        });
+
+        out
+    }
+}
+
+pub struct ScaleTo {
+    pub mesh_index: usize,
+    pub target_scale: Vector3<f32>,
+}
+
+impl ScaleTo {
+    pub fn new<R: Renderable>(mesh: &R, target_scale: Vector3<f32>) -> Self {
+        Self {
+            mesh_index: mesh.identifier(),
+            target_scale,
+        }
+    }
+}
+
+impl Animation<'static> for ScaleTo {
+    fn into_action(self, scene: std::rc::Rc<std::cell::RefCell<crate::Scene>>) -> Action<'static> {
+        let mut out = Action::new();
+        let start_scale = Rc::new(RefCell::new(Vector3::default()));
+
+        let scene_clone = scene.clone();
+        let start_scale_clone = start_scale.clone();
+
+        out.on_start = Box::new(move || {
+            start_scale_clone.borrow_mut().clone_from(
+                scene_clone
+                    .borrow()
+                    .acquire_instance_unchecked(self.mesh_index)
+                    .scale(),
+            );
+        });
+        out.on_update = Box::new(move |p, _| {
+            scene
+                .borrow_mut()
+                .acquire_instance_mut_unchecked(self.mesh_index)
+                .scale_to(
+                    &(*start_scale.borrow() + &((self.target_scale - *start_scale.borrow()) * p)),
+                );
+        });
+
+        out
+    }
+}
+
+pub struct ScaleBy {
+    pub mesh_index: usize,
+    pub scale_factor: Vector3<f32>,
+}
+
+impl ScaleBy {
+    pub fn new<R: Renderable>(mesh: &R, scale_factor: Vector3<f32>) -> Self {
+        Self {
+            mesh_index: mesh.identifier(),
+            scale_factor,
+        }
+    }
+}
+
+impl Animation<'static> for ScaleBy {
+    fn into_action(self, scene: std::rc::Rc<std::cell::RefCell<crate::Scene>>) -> Action<'static> {
+        let mut out = Action::new();
+        let start_scale = Rc::new(RefCell::new(Vector3::default()));
+
+        let scene_clone = scene.clone();
+        let start_scale_clone = start_scale.clone();
+
+        out.on_start = Box::new(move || {
+            start_scale_clone.borrow_mut().clone_from(
+                scene_clone
+                    .borrow()
+                    .acquire_instance_unchecked(self.mesh_index)
+                    .scale(),
+            );
+
+            println!("{:?}", start_scale_clone.borrow());
+        });
+        out.on_update = Box::new(move |p, _| {
+            scene
+                .borrow_mut()
+                .acquire_instance_mut_unchecked(self.mesh_index)
+                .scale_to(&start_scale.borrow().component_mul(
+                    &(Vector3::from_element(1.0)
+                        + (self.scale_factor - Vector3::from_element(1.0)) * p),
+                ));
+        });
+
+        out
+    }
+}
