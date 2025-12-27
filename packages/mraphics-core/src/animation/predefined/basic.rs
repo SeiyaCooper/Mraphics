@@ -2,14 +2,14 @@ use crate::{Action, Animation, RenderInstance, Renderable};
 use nalgebra::{UnitQuaternion, UnitVector3, Vector3};
 use std::{cell::RefCell, rc::Rc};
 
-pub struct MeshAnimation {
+pub struct MeshAnimation<'res> {
     pub mesh_id: usize,
-    pub on_update: Box<dyn FnMut(&mut RenderInstance, f32, f32)>,
-    pub on_start: Box<dyn FnMut()>,
-    pub on_stop: Box<dyn FnMut()>,
+    pub on_update: Box<dyn FnMut(&mut RenderInstance, f32, f32) + 'res>,
+    pub on_start: Box<dyn FnMut() + 'res>,
+    pub on_stop: Box<dyn FnMut() + 'res>,
 }
 
-impl MeshAnimation {
+impl<'res> MeshAnimation<'res> {
     pub fn new<R: Renderable>(mesh: &R) -> Self {
         Self {
             mesh_id: mesh.identifier(),
@@ -19,7 +19,7 @@ impl MeshAnimation {
         }
     }
 
-    pub fn with_on_update<F: FnMut(&mut RenderInstance, f32, f32) + 'static>(
+    pub fn with_on_update<F: FnMut(&mut RenderInstance, f32, f32) + 'res>(
         mut self,
         closure: F,
     ) -> Self {
@@ -27,19 +27,19 @@ impl MeshAnimation {
         self
     }
 
-    pub fn with_on_start<F: FnMut() + 'static>(mut self, closure: F) -> Self {
+    pub fn with_on_start<F: FnMut() + 'res>(mut self, closure: F) -> Self {
         self.on_start = Box::new(closure);
         self
     }
 
-    pub fn with_on_stop<F: FnMut() + 'static>(mut self, closure: F) -> Self {
+    pub fn with_on_stop<F: FnMut() + 'res>(mut self, closure: F) -> Self {
         self.on_stop = Box::new(closure);
         self
     }
 }
 
-impl Animation for MeshAnimation {
-    fn into_action(mut self, scene: std::rc::Rc<std::cell::RefCell<crate::Scene>>) -> Action {
+impl<'res> Animation<'res> for MeshAnimation<'res> {
+    fn into_action(mut self, scene: std::rc::Rc<std::cell::RefCell<crate::Scene>>) -> Action<'res> {
         let mut out = Action::new();
 
         out.on_start = self.on_start;
@@ -83,8 +83,8 @@ impl RotateAxisAngle {
     }
 }
 
-impl Animation for RotateAxisAngle {
-    fn into_action(self, scene: std::rc::Rc<std::cell::RefCell<crate::Scene>>) -> Action {
+impl Animation<'static> for RotateAxisAngle {
+    fn into_action(self, scene: std::rc::Rc<std::cell::RefCell<crate::Scene>>) -> Action<'static> {
         let mut out = Action::new();
         let start_rotation = Rc::new(RefCell::new(UnitQuaternion::identity()));
 

@@ -89,9 +89,7 @@ impl RenderInstance {
         self.update_matrix();
     }
 
-    fn update_matrix(&mut self) {
-        self.matrix = self.isometry.to_homogeneous() * Matrix4::new_nonuniform_scaling(&self.scale);
-
+    pub fn sync_matrix_data(&mut self) {
         self.geometry.reset_uniforms();
         self.geometry.uniforms.push(GadgetData {
             label: MODEL_MAT_LABEL.to_string(),
@@ -100,6 +98,11 @@ impl RenderInstance {
             needs_update_value: true,
             needs_update_buffer: true,
         })
+    }
+
+    fn update_matrix(&mut self) {
+        self.matrix = self.isometry.to_homogeneous() * Matrix4::new_nonuniform_scaling(&self.scale);
+        self.sync_matrix_data();
     }
 }
 

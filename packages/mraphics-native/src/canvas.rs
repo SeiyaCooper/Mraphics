@@ -1,39 +1,43 @@
 use mraphics_core::{
-    Animation, Color, Geometry, LogicalTimeline, Material, MeshLike, PerspectiveCamera, Renderer,
+    Animation, Color, Geometry, Material, MeshLike, PerspectiveCamera, RenderInstance, Renderer,
     Scene, Timeline,
 };
-use std::{cell::RefCell, rc::Rc, sync::Arc, time::Duration};
+use std::{cell::RefCell, marker::PhantomData, rc::Rc, sync::Arc, time::Duration};
 use winit::{event::WindowEvent, event_loop::EventLoop, window::Window};
 
-pub struct Canvas {
+pub struct Canvas<'res, T: Timeline<'res>> {
     pub window: Option<Arc<Window>>,
     pub camera: PerspectiveCamera,
     pub renderer: Option<Renderer<'static>>,
     pub scene: Rc<RefCell<Scene>>,
 
-    pub timeline: Rc<RefCell<Box<dyn Timeline>>>,
+    pub timeline: Rc<RefCell<T>>,
     pub playhead: f32,
 
     pub clear_color: Color<f64>,
 
     pub on_window_event:
         Box<dyn FnMut(&winit::event_loop::ActiveEventLoop, &WindowEvent, &mut PerspectiveCamera)>,
+
+    _marker: PhantomData<&'res ()>,
 }
 
-impl Canvas {
-    pub fn new() -> Self {
+impl<'res, T: Timeline<'res>> Canvas<'res, T> {
+    pub fn new(timeline: T) -> Self {
         Self {
             window: None,
             camera: PerspectiveCamera::default(),
             renderer: None,
             scene: Rc::new(RefCell::new(Scene::new())),
 
-            timeline: Rc::new(RefCell::new(Box::new(LogicalTimeline::new()))),
+            timeline: Rc::new(RefCell::new(timeline)),
             playhead: 0.0,
 
             clear_color: Color::from_hex_str(mraphics_core::constants::GRAY_E).unwrap(),
 
             on_window_event: Box::new(|_, _, _| {}),
+
+            _marker: PhantomData,
         }
     }
 
@@ -56,6 +60,11 @@ impl Canvas {
                 .unwrap()
                 .material,
         );
+
+        self.scene
+            .borrow_mut()
+            .acquire_instance_mut_unchecked(mesh.identifier())
+            .sync_matrix_data();
     }
 
     pub fn run(&mut self) {
@@ -63,7 +72,7 @@ impl Canvas {
         event_loop.run_app(self).unwrap();
     }
 
-    pub fn queue_animation<Ani: Animation>(&mut self, animation: Ani, duration: &Duration) {
+    pub fn queue_animation<Ani: Animation<'res>>(&mut self, animation: Ani, duration: &Duration) {
         let mut action = animation.into_action(self.scene.clone());
         action.duration = duration.as_secs_f32();
         action.start_time = self.playhead;
@@ -77,9 +86,41 @@ impl Canvas {
         self.playhead += step.as_secs_f32();
     }
 
-    pub fn with_scene_timeline_handle<
-        F: FnMut(Rc<RefCell<Scene>>, Rc<RefCell<Box<dyn Timeline>>>),
+    pub fn with_instance<
+        F: FnMut(Option<&mut RenderInstance>),
+        G: Geometry,
+        M: Material,
+        Mesh: MeshLike<G, M>,
     >(
+        &self,
+        mesh: &Mesh,
+        mut closure: F,
+    ) {
+        closure(
+            self.scene
+                .borrow_mut()
+                .acquire_instance_mut(mesh.identifier()),
+        );
+    }
+
+    pub fn with_instance_unchecked<
+        F: FnMut(&mut RenderInstance),
+        G: Geometry,
+        M: Material,
+        Mesh: MeshLike<G, M>,
+    >(
+        &self,
+        mesh: &Mesh,
+        mut closure: F,
+    ) {
+        closure(
+            self.scene
+                .borrow_mut()
+                .acquire_instance_mut_unchecked(mesh.identifier()),
+        );
+    }
+
+    pub fn with_scene_timeline_handle<F: FnMut(Rc<RefCell<Scene>>, Rc<RefCell<T>>)>(
         &self,
         mut closure: F,
     ) {
@@ -87,7 +128,7 @@ impl Canvas {
     }
 }
 
-impl winit::application::ApplicationHandler for Canvas {
+impl<'res, T: Timeline<'res>> winit::application::ApplicationHandler for Canvas<'res, T> {
     fn resumed(&mut self, event_loop: &winit::event_loop::ActiveEventLoop) {
         let window = event_loop
             .create_window(Window::default_attributes().with_title("mraphics window"))
@@ -121,6 +162,8 @@ impl winit::application::ApplicationHandler for Canvas {
 
             self.renderer = Some(Renderer::new(surface, device, queue, &adapter));
         });
+
+        self.timeline.borrow_mut().start();
     }
 
     fn window_event(

@@ -1,17 +1,17 @@
-pub struct Action {
+pub struct Action<'res> {
     pub start_time: f32,
     pub duration: f32,
 
-    pub on_start: Box<dyn FnMut()>,
-    pub on_stop: Box<dyn FnMut()>,
-    pub on_execute: Box<dyn FnMut()>,
-    pub on_update: Box<dyn FnMut(f32, f32)>,
+    pub on_start: Box<dyn FnMut() + 'res>,
+    pub on_stop: Box<dyn FnMut() + 'res>,
+    pub on_execute: Box<dyn FnMut() + 'res>,
+    pub on_update: Box<dyn FnMut(f32, f32) + 'res>,
 
     started: bool,
     stopped: bool,
 }
 
-impl Action {
+impl<'res> Action<'res> {
     pub fn new() -> Self {
         Self {
             start_time: 0.0,
