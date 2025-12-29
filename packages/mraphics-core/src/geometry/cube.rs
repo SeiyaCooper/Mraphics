@@ -1,6 +1,7 @@
 use crate::{GadgetData, Geometry, GeometryIndices};
 use nalgebra::Vector3;
 
+#[derive(Clone)]
 pub struct Cube {
     pub width: f32,
     pub height: f32,

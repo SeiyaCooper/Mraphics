@@ -64,6 +64,6 @@ impl GeometryView {
     }
 }
 
-pub trait Geometry {
+pub trait Geometry: Clone {
     fn update_view(&self, view: &mut GeometryView);
 }

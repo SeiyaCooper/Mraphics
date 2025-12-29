@@ -2,6 +2,7 @@ use std::f32::consts::PI;
 
 use crate::{CustomIndices, GadgetData, Geometry, GeometryIndices};
 
+#[derive(Clone)]
 pub struct Sphere {
     pub radius: f32,
 
