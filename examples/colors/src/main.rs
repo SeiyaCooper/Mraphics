@@ -27,19 +27,18 @@ fn main() {
 
         let mut point = Point3D::default().with_radius(unit / 2.0);
         point.material = BasicMaterial::new().with_color(color);
-        canvas.add_mesh(&point);
+        let point = canvas.add_mesh(point);
 
         let row = point_index / col_num;
         let col = point_index % col_num;
 
-        let mut scene = canvas.scene.borrow_mut();
-        let instance = scene.acquire_instance_mut(point.identifier).unwrap();
-
-        instance.move_to(&Vector3::new(
-            (((col as f32) - ((col_num - 1) as f32 / 2.0)) / col_num as f32) * width,
-            -width / 2.0 + (unit * row as f32),
-            0.0,
-        ));
+        canvas.with_instance_unchecked(&point, |instance: &mut mraphics::RenderInstance| {
+            instance.move_to(&Vector3::new(
+                (((col as f32) - ((col_num - 1) as f32 / 2.0)) / col_num as f32) * width,
+                -width / 2.0 + (unit * row as f32),
+                0.0,
+            ));
+        });
 
         point_index += 1;
     }

@@ -1,6 +1,9 @@
 mod scene;
 pub use scene::*;
 
+mod mesh_pool;
+pub use mesh_pool::*;
+
 mod render;
 pub use render::*;
 

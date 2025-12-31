@@ -5,7 +5,7 @@ use crate::constants::{
 };
 use crate::{
     Camera, Color, Conveyor, ConveyorManager, GadgetData, GadgetDescriptor, GeometryIndices,
-    PipelineManager, RenderInstance, Scene,
+    PipelineManager, RenderInstance,
 };
 
 pub struct Renderer<'window> {
@@ -77,7 +77,7 @@ impl<'window> Renderer<'window> {
 
     pub fn render<C: Camera>(
         &mut self,
-        scene: &mut Scene,
+        instances: &mut [RenderInstance],
         camera: &C,
         clear_color: &Color<f64>,
     ) -> Result<(), wgpu::SurfaceError> {
@@ -123,7 +123,7 @@ impl<'window> Renderer<'window> {
             )
             .unwrap();
 
-        for instance in &mut scene.instances {
+        for instance in instances {
             self.render_instance(&mut render_pass, instance);
         }
 

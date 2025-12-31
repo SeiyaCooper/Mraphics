@@ -1,25 +1,25 @@
-use crate::{Action, Animation, RenderInstance, Renderable};
+use crate::{Action, Animation, MeshHandle, MeshLike, MeshPool, RenderInstance, Scene};
 use nalgebra::{UnitQuaternion, UnitVector3, Vector3};
 use std::{cell::RefCell, rc::Rc};
 
-pub struct MeshAnimation<'res> {
+pub struct MeshAnimation<'res, M: MeshLike + 'static> {
     pub mesh_id: usize,
-    pub on_update: Box<dyn FnMut(&mut RenderInstance, f32, f32) + 'res>,
+    pub on_update: Box<dyn FnMut(&mut M, &mut RenderInstance, f32, f32) + 'res>,
     pub on_start: Box<dyn FnMut() + 'res>,
     pub on_stop: Box<dyn FnMut() + 'res>,
 }
 
-impl<'res> MeshAnimation<'res> {
-    pub fn new<R: Renderable>(mesh: &R) -> Self {
+impl<'res, M: MeshLike + 'static> MeshAnimation<'res, M> {
+    pub fn new(mesh_handle: &MeshHandle<M>) -> Self {
         Self {
-            mesh_id: mesh.identifier(),
-            on_update: Box::new(|_, _, _| {}),
+            mesh_id: mesh_handle.id,
+            on_update: Box::new(|_, _, _, _| {}),
             on_start: Box::new(|| {}),
             on_stop: Box::new(|| {}),
         }
     }
 
-    pub fn with_on_update<F: FnMut(&mut RenderInstance, f32, f32) + 'res>(
+    pub fn with_on_update<F: FnMut(&mut M, &mut RenderInstance, f32, f32) + 'res>(
         mut self,
         closure: F,
     ) -> Self {
@@ -38,8 +38,12 @@ impl<'res> MeshAnimation<'res> {
     }
 }
 
-impl<'res> Animation<'res> for MeshAnimation<'res> {
-    fn into_action(mut self, scene: std::rc::Rc<std::cell::RefCell<crate::Scene>>) -> Action<'res> {
+impl<'res, M: MeshLike + 'static> Animation<'res> for MeshAnimation<'res, M> {
+    fn into_action(
+        mut self,
+        mesh_pool: Rc<RefCell<MeshPool>>,
+        scene: Rc<RefCell<Scene>>,
+    ) -> Action<'res> {
         let mut out = Action::new();
 
         out.on_start = self.on_start;
@@ -47,6 +51,9 @@ impl<'res> Animation<'res> for MeshAnimation<'res> {
 
         out.on_update = Box::new(move |progress, elapsed_time| {
             (self.on_update)(
+                mesh_pool
+                    .borrow_mut()
+                    .acquire_mesh_mut_unchecked(self.mesh_id),
                 scene
                     .borrow_mut()
                     .acquire_instance_mut_unchecked(self.mesh_id),
@@ -59,24 +66,33 @@ impl<'res> Animation<'res> for MeshAnimation<'res> {
     }
 }
 
+/// Rotates the mesh around the specific axis a specific angle
 pub struct RotateAxisAngle {
-    pub mesh_index: usize,
+    pub mesh_id: usize,
     pub axis: UnitVector3<f32>,
     pub angle_rad: f32,
 }
 
 impl RotateAxisAngle {
-    pub fn new<R: Renderable>(mesh: &R, axis: UnitVector3<f32>, angle_rad: f32) -> Self {
+    pub fn new<M: MeshLike + 'static>(
+        mesh_handle: &MeshHandle<M>,
+        axis: UnitVector3<f32>,
+        angle_rad: f32,
+    ) -> Self {
         Self {
-            mesh_index: mesh.identifier(),
+            mesh_id: mesh_handle.id,
             axis,
             angle_rad,
         }
     }
 
-    pub fn new_normalize<R: Renderable>(mesh: &R, axis: Vector3<f32>, angle_rad: f32) -> Self {
+    pub fn new_normalize<M: MeshLike + 'static>(
+        mesh_handle: MeshHandle<M>,
+        axis: Vector3<f32>,
+        angle_rad: f32,
+    ) -> Self {
         Self {
-            mesh_index: mesh.identifier(),
+            mesh_id: mesh_handle.id,
             axis: UnitVector3::new_normalize(axis),
             angle_rad,
         }
@@ -84,7 +100,11 @@ impl RotateAxisAngle {
 }
 
 impl Animation<'static> for RotateAxisAngle {
-    fn into_action(self, scene: std::rc::Rc<std::cell::RefCell<crate::Scene>>) -> Action<'static> {
+    fn into_action(
+        self,
+        _mesh_pool: Rc<RefCell<MeshPool>>,
+        scene: Rc<RefCell<Scene>>,
+    ) -> Action<'static> {
         let mut out = Action::new();
         let start_rotation = Rc::new(RefCell::new(UnitQuaternion::identity()));
 
@@ -95,14 +115,14 @@ impl Animation<'static> for RotateAxisAngle {
             start_rotation_clone.borrow_mut().clone_from(
                 scene_clone
                     .borrow()
-                    .acquire_instance_unchecked(self.mesh_index)
+                    .acquire_instance_unchecked(self.mesh_id)
                     .rotation(),
             );
         });
         out.on_update = Box::new(move |p, _| {
             scene
                 .borrow_mut()
-                .acquire_instance_mut_unchecked(self.mesh_index)
+                .acquire_instance_mut_unchecked(self.mesh_id)
                 .set_rotation(
                     &(UnitQuaternion::from_axis_angle(&self.axis, self.angle_rad * p)
                         * &*start_rotation.borrow()),
@@ -113,22 +133,30 @@ impl Animation<'static> for RotateAxisAngle {
     }
 }
 
+/// Shifts the mesh to the specific place
 pub struct MoveTo {
-    pub mesh_index: usize,
+    pub mesh_id: usize,
     pub target_place: Vector3<f32>,
 }
 
 impl MoveTo {
-    pub fn new<R: Renderable>(mesh: &R, target_place: Vector3<f32>) -> Self {
+    pub fn new<M: MeshLike + 'static>(
+        mesh_handle: &MeshHandle<M>,
+        target_place: Vector3<f32>,
+    ) -> Self {
         Self {
-            mesh_index: mesh.identifier(),
+            mesh_id: mesh_handle.id,
             target_place,
         }
     }
 }
 
 impl Animation<'static> for MoveTo {
-    fn into_action(self, scene: std::rc::Rc<std::cell::RefCell<crate::Scene>>) -> Action<'static> {
+    fn into_action(
+        self,
+        _mesh_pool: Rc<RefCell<MeshPool>>,
+        scene: Rc<RefCell<Scene>>,
+    ) -> Action<'static> {
         let mut out = Action::new();
         let start_place = Rc::new(RefCell::new(Vector3::default()));
 
@@ -139,7 +167,7 @@ impl Animation<'static> for MoveTo {
             start_place_clone.borrow_mut().clone_from(
                 &scene_clone
                     .borrow()
-                    .acquire_instance_unchecked(self.mesh_index)
+                    .acquire_instance_unchecked(self.mesh_id)
                     .translation()
                     .vector,
             );
@@ -147,7 +175,7 @@ impl Animation<'static> for MoveTo {
         out.on_update = Box::new(move |p, _| {
             scene
                 .borrow_mut()
-                .acquire_instance_mut_unchecked(self.mesh_index)
+                .acquire_instance_mut_unchecked(self.mesh_id)
                 .move_to(
                     &(*start_place.borrow() + &((self.target_place - *start_place.borrow()) * p)),
                 );
@@ -158,21 +186,28 @@ impl Animation<'static> for MoveTo {
 }
 
 pub struct ScaleTo {
-    pub mesh_index: usize,
+    pub mesh_id: usize,
     pub target_scale: Vector3<f32>,
 }
 
 impl ScaleTo {
-    pub fn new<R: Renderable>(mesh: &R, target_scale: Vector3<f32>) -> Self {
+    pub fn new<M: MeshLike + 'static>(
+        mesh_handle: MeshHandle<M>,
+        target_scale: Vector3<f32>,
+    ) -> Self {
         Self {
-            mesh_index: mesh.identifier(),
+            mesh_id: mesh_handle.id,
             target_scale,
         }
     }
 }
 
 impl Animation<'static> for ScaleTo {
-    fn into_action(self, scene: std::rc::Rc<std::cell::RefCell<crate::Scene>>) -> Action<'static> {
+    fn into_action(
+        self,
+        _mesh_pool: Rc<RefCell<MeshPool>>,
+        scene: Rc<RefCell<Scene>>,
+    ) -> Action<'static> {
         let mut out = Action::new();
         let start_scale = Rc::new(RefCell::new(Vector3::default()));
 
@@ -183,14 +218,14 @@ impl Animation<'static> for ScaleTo {
             start_scale_clone.borrow_mut().clone_from(
                 scene_clone
                     .borrow()
-                    .acquire_instance_unchecked(self.mesh_index)
+                    .acquire_instance_unchecked(self.mesh_id)
                     .scale(),
             );
         });
         out.on_update = Box::new(move |p, _| {
             scene
                 .borrow_mut()
-                .acquire_instance_mut_unchecked(self.mesh_index)
+                .acquire_instance_mut_unchecked(self.mesh_id)
                 .scale_to(
                     &(*start_scale.borrow() + &((self.target_scale - *start_scale.borrow()) * p)),
                 );
@@ -201,21 +236,28 @@ impl Animation<'static> for ScaleTo {
 }
 
 pub struct ScaleBy {
-    pub mesh_index: usize,
+    pub mesh_id: usize,
     pub scale_factor: Vector3<f32>,
 }
 
 impl ScaleBy {
-    pub fn new<R: Renderable>(mesh: &R, scale_factor: Vector3<f32>) -> Self {
+    pub fn new<M: MeshLike + 'static>(
+        mesh_handle: MeshHandle<M>,
+        scale_factor: Vector3<f32>,
+    ) -> Self {
         Self {
-            mesh_index: mesh.identifier(),
+            mesh_id: mesh_handle.id,
             scale_factor,
         }
     }
 }
 
 impl Animation<'static> for ScaleBy {
-    fn into_action(self, scene: std::rc::Rc<std::cell::RefCell<crate::Scene>>) -> Action<'static> {
+    fn into_action(
+        self,
+        _mesh_pool: Rc<RefCell<MeshPool>>,
+        scene: Rc<RefCell<Scene>>,
+    ) -> Action<'static> {
         let mut out = Action::new();
         let start_scale = Rc::new(RefCell::new(Vector3::default()));
 
@@ -226,7 +268,7 @@ impl Animation<'static> for ScaleBy {
             start_scale_clone.borrow_mut().clone_from(
                 scene_clone
                     .borrow()
-                    .acquire_instance_unchecked(self.mesh_index)
+                    .acquire_instance_unchecked(self.mesh_id)
                     .scale(),
             );
 
@@ -235,7 +277,7 @@ impl Animation<'static> for ScaleBy {
         out.on_update = Box::new(move |p, _| {
             scene
                 .borrow_mut()
-                .acquire_instance_mut_unchecked(self.mesh_index)
+                .acquire_instance_mut_unchecked(self.mesh_id)
                 .scale_to(&start_scale.borrow().component_mul(
                     &(Vector3::from_element(1.0)
                         + (self.scale_factor - Vector3::from_element(1.0)) * p),

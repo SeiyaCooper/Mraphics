@@ -1,5 +1,5 @@
 use mraphics_core::{
-    Animation, Color, Geometry, Material, MeshLike, PerspectiveCamera, RenderInstance, Renderer,
+    Animation, Color, MeshHandle, MeshLike, MeshPool, PerspectiveCamera, RenderInstance, Renderer,
     Scene, Timeline,
 };
 use std::{cell::RefCell, marker::PhantomData, rc::Rc, sync::Arc, time::Duration};
@@ -9,7 +9,9 @@ pub struct Canvas<'res, T: Timeline<'res>> {
     pub window: Option<Arc<Window>>,
     pub camera: PerspectiveCamera,
     pub renderer: Option<Renderer<'static>>,
+
     pub scene: Rc<RefCell<Scene>>,
+    pub mesh_pool: Rc<RefCell<MeshPool>>,
 
     pub timeline: Rc<RefCell<T>>,
     pub playhead: f32,
@@ -28,7 +30,9 @@ impl<'res, T: Timeline<'res>> Canvas<'res, T> {
             window: None,
             camera: PerspectiveCamera::default(),
             renderer: None,
+
             scene: Rc::new(RefCell::new(Scene::new())),
+            mesh_pool: Rc::new(RefCell::new(MeshPool::new())),
 
             timeline: Rc::new(RefCell::new(timeline)),
             playhead: 0.0,
@@ -41,8 +45,8 @@ impl<'res, T: Timeline<'res>> Canvas<'res, T> {
         }
     }
 
-    pub fn add_mesh<Mesh: MeshLike>(&self, mesh: &Mesh) {
-        self.scene.borrow_mut().add_renderable(mesh);
+    pub fn add_mesh<Mesh: MeshLike + 'static>(&self, mesh: Mesh) -> MeshHandle<Mesh> {
+        self.scene.borrow_mut().add_renderable(&mesh);
 
         mesh.update_geometry_view(
             &mut self
@@ -65,6 +69,8 @@ impl<'res, T: Timeline<'res>> Canvas<'res, T> {
             .borrow_mut()
             .acquire_instance_mut_unchecked(mesh.identifier())
             .sync_matrix_data();
+
+        self.mesh_pool.borrow_mut().add_mesh(mesh)
     }
 
     pub fn run(&mut self) {
@@ -73,7 +79,7 @@ impl<'res, T: Timeline<'res>> Canvas<'res, T> {
     }
 
     pub fn queue_animation<Ani: Animation<'res>>(&mut self, animation: Ani, duration: &Duration) {
-        let mut action = animation.into_action(self.scene.clone());
+        let mut action = animation.into_action(self.mesh_pool.clone(), self.scene.clone());
         action.duration = duration.as_secs_f32();
         action.start_time = self.playhead;
 
@@ -86,37 +92,23 @@ impl<'res, T: Timeline<'res>> Canvas<'res, T> {
         self.playhead += step.as_secs_f32();
     }
 
-    pub fn with_instance<
-        F: FnMut(Option<&mut RenderInstance>),
-        G: Geometry,
-        M: Material,
-        Mesh: MeshLike,
-    >(
+    pub fn with_instance<F: FnMut(Option<&mut RenderInstance>), Mesh: MeshLike>(
         &self,
-        mesh: &Mesh,
+        mesh_handle: &MeshHandle<Mesh>,
         mut closure: F,
     ) {
-        closure(
-            self.scene
-                .borrow_mut()
-                .acquire_instance_mut(mesh.identifier()),
-        );
+        closure(self.scene.borrow_mut().acquire_instance_mut(mesh_handle.id));
     }
 
-    pub fn with_instance_unchecked<
-        F: FnMut(&mut RenderInstance),
-        G: Geometry,
-        M: Material,
-        Mesh: MeshLike,
-    >(
+    pub fn with_instance_unchecked<F: FnMut(&mut RenderInstance), Mesh: MeshLike>(
         &self,
-        mesh: &Mesh,
+        mesh_handle: &MeshHandle<Mesh>,
         mut closure: F,
     ) {
         closure(
             self.scene
                 .borrow_mut()
-                .acquire_instance_mut_unchecked(mesh.identifier()),
+                .acquire_instance_mut_unchecked(mesh_handle.id),
         );
     }
 
@@ -192,7 +184,7 @@ impl<'res, T: Timeline<'res>> winit::application::ApplicationHandler for Canvas<
                     .as_mut()
                     .unwrap()
                     .render(
-                        &mut self.scene.borrow_mut(),
+                        &mut self.scene.borrow_mut().instances,
                         &self.camera,
                         &self.clear_color,
                     )
