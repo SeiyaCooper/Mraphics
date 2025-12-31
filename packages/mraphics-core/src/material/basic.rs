@@ -6,6 +6,7 @@ pub const COLOR_UNIFORM_INDEX: GadgetIndex = GadgetIndex {
     binding_index: 0,
 };
 
+#[derive(Clone)]
 pub struct BasicMaterial {
     pub color: Color<f32>,
 }

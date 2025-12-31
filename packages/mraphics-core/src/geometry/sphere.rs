@@ -1,6 +1,8 @@
+use crate::{
+    CustomIndices, GadgetData, Geometry, GeometryIndices, Material, Mesh, Transformable,
+    math_oper::lerp,
+};
 use std::f32::consts::PI;
-
-use crate::{CustomIndices, GadgetData, Geometry, GeometryIndices};
 
 #[derive(Clone)]
 pub struct Sphere {
@@ -13,32 +15,21 @@ pub struct Sphere {
     pub theta_start: f32,
     pub theta_end: f32,
     pub theta_segments: u16,
+
+    pub vertices: Vec<[f32; 3]>,
+    pub indices: Vec<u16>,
 }
 
 impl Sphere {
     pub fn new() -> Self {
-        Self::default()
+        let mut out = Self::default();
+        out.update();
+        out
     }
-}
 
-impl Default for Sphere {
-    fn default() -> Self {
-        Self {
-            radius: 1.0,
-            phi_start: 0.0,
-            phi_end: PI * 2.0,
-            phi_segments: 32,
-            theta_start: 0.0,
-            theta_end: PI,
-            theta_segments: 16,
-        }
-    }
-}
-
-impl Geometry for Sphere {
-    fn update_view(&self, view: &mut super::GeometryView) {
-        let mut vertices: Vec<f32> = Vec::new();
-        let mut indices: Vec<u16> = Vec::new();
+    pub fn update(&mut self) {
+        self.vertices = Vec::new();
+        self.indices = Vec::new();
 
         let r = self.radius;
         let phi_unit = (self.phi_end - self.phi_start) / self.phi_segments as f32;
@@ -52,21 +43,22 @@ impl Geometry for Sphere {
                 let phi = self.phi_start + j * phi_unit;
                 let theta = self.theta_start + i * theta_unit;
 
-                vertices.push(r * phi.cos() * theta.sin());
-                vertices.push(r * theta.cos());
-                vertices.push(r * phi.sin() * theta.sin());
-                vertices.push(1.0);
+                self.vertices.push([
+                    r * phi.cos() * theta.sin(),
+                    r * theta.cos(),
+                    r * phi.sin() * theta.sin(),
+                ]);
             }
         }
 
         let mut add_plane = |a: u16, b: u16, c: u16, d: u16| {
-            indices.push(a);
-            indices.push(b);
-            indices.push(d);
+            self.indices.push(a);
+            self.indices.push(b);
+            self.indices.push(d);
 
-            indices.push(b);
-            indices.push(c);
-            indices.push(d);
+            self.indices.push(b);
+            self.indices.push(c);
+            self.indices.push(d);
         };
 
         for i in 0..self.theta_segments {
@@ -86,6 +78,35 @@ impl Geometry for Sphere {
                 add_plane(a, b, c, d);
             }
         }
+    }
+}
+
+impl Default for Sphere {
+    fn default() -> Self {
+        Self {
+            radius: 1.0,
+            phi_start: 0.0,
+            phi_end: PI * 2.0,
+            phi_segments: 32,
+            theta_start: 0.0,
+            theta_end: PI,
+            theta_segments: 16,
+            vertices: Vec::new(),
+            indices: Vec::new(),
+        }
+    }
+}
+
+impl Geometry for Sphere {
+    fn update_view(&self, view: &mut super::GeometryView) {
+        let mut vertices = Vec::new();
+
+        for vertex in &self.vertices {
+            vertices.push(vertex[0]);
+            vertices.push(vertex[1]);
+            vertices.push(vertex[2]);
+            vertices.push(1.0);
+        }
 
         view.reset_vertices();
 
@@ -96,6 +117,38 @@ impl Geometry for Sphere {
             needs_update_value: true,
             needs_update_buffer: true,
         });
-        view.indices = GeometryIndices::CustomU16(CustomIndices::new(indices));
+        view.indices = GeometryIndices::CustomU16(CustomIndices::new((&self.indices).to_owned()));
+    }
+}
+
+impl<M: Material> Transformable for Mesh<Sphere, M> {
+    fn apply_transform<Trans: Fn(&[f32; 3]) -> [f32; 3]>(
+        &self,
+        transform: Trans,
+        progress: f32,
+    ) -> Self {
+        let mut transformed_geometry = Sphere::default();
+
+        for vertex in &self.geometry.vertices {
+            let mut iter = lerp(
+                vertex.iter().copied(),
+                transform(vertex).into_iter(),
+                progress,
+            );
+
+            transformed_geometry.vertices.push([
+                iter.next().unwrap(),
+                iter.next().unwrap(),
+                iter.next().unwrap(),
+            ]);
+        }
+
+        transformed_geometry.indices = self.geometry.indices.to_owned();
+
+        Self {
+            identifier: self.identifier,
+            geometry: transformed_geometry,
+            material: self.material.clone(),
+        }
     }
 }

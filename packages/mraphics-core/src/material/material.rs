@@ -39,7 +39,7 @@ impl MaterialView {
     }
 }
 
-pub trait Material {
+pub trait Material: Clone {
     fn identifier(&self) -> &str;
     fn shader_code(&self) -> &str;
     fn update_view(&self, view: &mut MaterialView);

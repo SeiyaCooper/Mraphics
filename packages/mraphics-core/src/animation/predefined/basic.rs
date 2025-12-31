@@ -66,10 +66,15 @@ impl<'res, M: MeshLike + 'static> Animation<'res> for MeshAnimation<'res, M> {
     }
 }
 
-/// Rotates the mesh around the specific axis a specific angle
+/// Rotates the mesh around a given axis by a given angle.
 pub struct RotateAxisAngle {
+    /// The unique identifier of the mesh to animate.
     pub mesh_id: usize,
+
+    /// The axis of rotation, normalized to unit length.
     pub axis: UnitVector3<f32>,
+
+    /// The rotation angle in radians for this animation.
     pub angle_rad: f32,
 }
 
