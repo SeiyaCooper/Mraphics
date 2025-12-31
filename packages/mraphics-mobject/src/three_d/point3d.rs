@@ -44,7 +44,7 @@ impl Default for Point3D {
 
 impl Renderable for Point3D {
     fn build_instance(&self) -> mraphics_core::RenderInstance {
-        RenderInstance::new(self.identifier.index().to_string(), &self.material)
+        RenderInstance::new(self.identifier.index(), &self.material)
     }
 
     fn identifier(&self) -> usize {

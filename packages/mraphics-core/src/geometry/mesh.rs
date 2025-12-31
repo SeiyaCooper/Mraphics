@@ -47,7 +47,7 @@ impl<G: Geometry, M: Material> Renderable for Mesh<G, M> {
     }
 
     fn build_instance(&self) -> RenderInstance {
-        RenderInstance::new(self.identifier.index().to_string(), &self.material)
+        RenderInstance::new(self.identifier.index(), &self.material)
     }
 }
 

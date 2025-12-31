@@ -15,8 +15,8 @@ pub struct Renderer<'window> {
     pub queue: wgpu::Queue,
 
     pipeline_manager: PipelineManager,
-    mesh_conveyor_manager: ConveyorManager,
-    material_conveyor_manager: ConveyorManager,
+    mesh_conveyor_manager: ConveyorManager<usize>,
+    material_conveyor_manager: ConveyorManager<String>,
     shared_conveyor: Conveyor,
 }
 
@@ -143,7 +143,7 @@ impl<'window> Renderer<'window> {
     ) {
         let mesh_conveyor = self
             .mesh_conveyor_manager
-            .acquire_attr_conveyor(&instance.identifier);
+            .acquire_conveyor(&instance.identifier);
 
         update_gadgets(
             &self.device,
@@ -163,9 +163,9 @@ impl<'window> Renderer<'window> {
             wgpu::BufferBindingType::Uniform,
         );
 
-        let material_conveyor = self.material_conveyor_manager.acquire_attr_conveyor(
-            &(instance.material.identifier.to_string() + &instance.identifier),
-        );
+        let material_conveyor = self
+            .material_conveyor_manager
+            .acquire_conveyor(&(instance.identifier.to_string() + &instance.material.identifier));
 
         update_gadgets(
             &self.device,

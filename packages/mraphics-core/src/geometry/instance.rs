@@ -5,7 +5,7 @@ use crate::{
 use nalgebra::{Isometry3, Matrix4, Translation3, UnitQuaternion, UnitVector3, Vector3};
 
 pub struct RenderInstance {
-    pub identifier: String,
+    pub identifier: usize,
     pub geometry: GeometryView,
     pub material: MaterialView,
 
@@ -15,7 +15,7 @@ pub struct RenderInstance {
 }
 
 impl RenderInstance {
-    pub fn new<M: Material>(identifier: String, material: &M) -> Self {
+    pub fn new<M: Material>(identifier: usize, material: &M) -> Self {
         Self {
             identifier,
             geometry: GeometryView::new(),
