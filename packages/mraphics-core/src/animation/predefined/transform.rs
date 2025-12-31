@@ -1,3 +1,5 @@
+use nalgebra::{Matrix3, Vector3};
+
 use crate::{Action, Animation, MeshHandle, MeshLike, MeshPool, Scene};
 use std::{cell::RefCell, marker::PhantomData, rc::Rc};
 
@@ -48,6 +50,57 @@ impl<Trans: Fn(&[f32; 3]) -> [f32; 3] + 'static, M: Transformable + 'static> Ani
                 .borrow_mut()
                 .acquire_mesh_mut_unchecked::<M>(self.mesh_id)
                 .apply_transform(&self.transform, p);
+
+            transformed.update_geometry_view(
+                &mut scene
+                    .borrow_mut()
+                    .acquire_instance_mut_unchecked(self.mesh_id)
+                    .geometry,
+            );
+        });
+
+        out
+    }
+}
+
+pub struct MatrixTransform<M: Transformable + 'static> {
+    /// The unique identifier of the mesh to animate.
+    pub mesh_id: usize,
+
+    matrix: Matrix3<f32>,
+
+    _marker: PhantomData<M>,
+}
+
+impl<M: Transformable + 'static> MatrixTransform<M> {
+    pub fn new(mesh_handle: &MeshHandle<M>, matrix: Matrix3<f32>) -> Self {
+        Self {
+            mesh_id: mesh_handle.id,
+            matrix,
+            _marker: PhantomData,
+        }
+    }
+}
+
+impl<M: Transformable + 'static> Animation<'static> for MatrixTransform<M> {
+    fn into_action(
+        self,
+        mesh_pool: Rc<RefCell<MeshPool>>,
+        scene: Rc<RefCell<Scene>>,
+    ) -> Action<'static> {
+        let mut out = Action::new();
+
+        out.on_update = Box::new(move |p: f32, _t: f32| {
+            let transformed = mesh_pool
+                .borrow_mut()
+                .acquire_mesh_mut_unchecked::<M>(self.mesh_id)
+                .apply_transform(
+                    |point: &[f32; 3]| {
+                        let transformed = self.matrix * &Vector3::from_row_slice(point);
+                        return [transformed[0], transformed[1], transformed[2]];
+                    },
+                    p,
+                );
 
             transformed.update_geometry_view(
                 &mut scene
