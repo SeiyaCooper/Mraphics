@@ -33,9 +33,7 @@ fn main() {
         let col = point_index % col_num;
 
         let mut scene = canvas.scene.borrow_mut();
-        let instance = scene
-            .acquire_instance_mut(point.identifier.index())
-            .unwrap();
+        let instance = scene.acquire_instance_mut(point.identifier).unwrap();
 
         instance.move_to(&Vector3::new(
             (((col as f32) - ((col_num - 1) as f32 / 2.0)) / col_num as f32) * width,

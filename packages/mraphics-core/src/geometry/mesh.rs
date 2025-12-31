@@ -1,28 +1,29 @@
-use crate::{Geometry, Material, RenderInstance, Renderable};
-use std::sync::atomic::AtomicUsize;
+use crate::{Geometry, GeometryView, Material, MaterialView, RenderInstance, Renderable};
+use std::{marker::PhantomData, sync::atomic::AtomicUsize};
 
 static GLOBAL_MESH_ID: AtomicUsize = AtomicUsize::new(0);
 
-pub trait MeshLike<G: Geometry, M: Material>: Renderable {
-    fn geometry(&self) -> &G;
-    fn material(&self) -> &M;
+pub trait MeshLike: Renderable {
+    fn update_geometry_view(&self, view: &mut GeometryView);
+    fn update_material_view(&self, view: &mut MaterialView);
 }
 
-#[derive(Debug, PartialEq, Eq, Hash)]
-pub struct MeshIndex(usize);
+pub struct MeshHandle<M: MeshLike> {
+    pub id: usize,
+    _marker: PhantomData<M>,
+}
 
-impl MeshIndex {
-    pub fn new(index: usize) -> Self {
-        Self(index)
-    }
-
-    pub fn index(&self) -> usize {
-        self.0
+impl<M: MeshLike> MeshHandle<M> {
+    pub fn new(id: usize) -> Self {
+        Self {
+            id,
+            _marker: PhantomData,
+        }
     }
 }
 
 pub struct Mesh<G: Geometry, M: Material> {
-    pub identifier: MeshIndex,
+    pub identifier: usize,
     pub geometry: G,
     pub material: M,
 }
@@ -36,27 +37,27 @@ impl<G: Geometry, M: Material> Mesh<G, M> {
         }
     }
 
-    pub fn acquire_id() -> MeshIndex {
-        MeshIndex::new(GLOBAL_MESH_ID.fetch_add(1, std::sync::atomic::Ordering::Relaxed))
+    pub fn acquire_id() -> usize {
+        GLOBAL_MESH_ID.fetch_add(1, std::sync::atomic::Ordering::Relaxed)
     }
 }
 
 impl<G: Geometry, M: Material> Renderable for Mesh<G, M> {
     fn identifier(&self) -> usize {
-        self.identifier.index()
+        self.identifier
     }
 
     fn build_instance(&self) -> RenderInstance {
-        RenderInstance::new(self.identifier.index(), &self.material)
+        RenderInstance::new(self.identifier, &self.material)
     }
 }
 
-impl<G: Geometry, M: Material> MeshLike<G, M> for Mesh<G, M> {
-    fn geometry(&self) -> &G {
-        &self.geometry
+impl<G: Geometry, M: Material> MeshLike for Mesh<G, M> {
+    fn update_geometry_view(&self, view: &mut GeometryView) {
+        self.geometry.update_view(view);
     }
 
-    fn material(&self) -> &M {
-        &self.material
+    fn update_material_view(&self, view: &mut MaterialView) {
+        self.material.update_view(view);
     }
 }

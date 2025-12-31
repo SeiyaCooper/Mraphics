@@ -1,4 +1,7 @@
-use mraphics_core::{BasicMaterial, Mesh, MeshIndex, MeshLike, RenderInstance, Renderable, Sphere};
+use mraphics_core::{
+    BasicMaterial, Geometry, GeometryView, Material, MaterialView, Mesh, MeshLike, RenderInstance,
+    Renderable, Sphere,
+};
 #[cfg(feature = "wasm")]
 use wasm_bindgen::prelude::wasm_bindgen;
 
@@ -7,7 +10,7 @@ pub struct Point3D {
     pub radius: f32,
 
     #[cfg_attr(feature = "wasm", wasm_bindgen(skip))]
-    pub identifier: MeshIndex,
+    pub identifier: usize,
 
     #[cfg_attr(feature = "wasm", wasm_bindgen(skip))]
     pub geometry: Sphere,
@@ -44,20 +47,20 @@ impl Default for Point3D {
 
 impl Renderable for Point3D {
     fn build_instance(&self) -> mraphics_core::RenderInstance {
-        RenderInstance::new(self.identifier.index(), &self.material)
+        RenderInstance::new(self.identifier, &self.material)
     }
 
     fn identifier(&self) -> usize {
-        self.identifier.index()
+        self.identifier
     }
 }
 
-impl MeshLike<Sphere, BasicMaterial> for Point3D {
-    fn geometry(&self) -> &Sphere {
-        &self.geometry
+impl MeshLike for Point3D {
+    fn update_geometry_view(&self, view: &mut GeometryView) {
+        self.geometry.update_view(view);
     }
 
-    fn material(&self) -> &BasicMaterial {
-        &self.material
+    fn update_material_view(&self, view: &mut MaterialView) {
+        self.material.update_view(view);
     }
 }

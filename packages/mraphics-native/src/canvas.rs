@@ -41,10 +41,10 @@ impl<'res, T: Timeline<'res>> Canvas<'res, T> {
         }
     }
 
-    pub fn add_mesh<G: Geometry, M: Material, Mesh: MeshLike<G, M>>(&self, mesh: &Mesh) {
+    pub fn add_mesh<Mesh: MeshLike>(&self, mesh: &Mesh) {
         self.scene.borrow_mut().add_renderable(mesh);
 
-        mesh.geometry().update_view(
+        mesh.update_geometry_view(
             &mut self
                 .scene
                 .borrow_mut()
@@ -52,7 +52,7 @@ impl<'res, T: Timeline<'res>> Canvas<'res, T> {
                 .unwrap()
                 .geometry,
         );
-        mesh.material().update_view(
+        mesh.update_material_view(
             &mut self
                 .scene
                 .borrow_mut()
@@ -90,7 +90,7 @@ impl<'res, T: Timeline<'res>> Canvas<'res, T> {
         F: FnMut(Option<&mut RenderInstance>),
         G: Geometry,
         M: Material,
-        Mesh: MeshLike<G, M>,
+        Mesh: MeshLike,
     >(
         &self,
         mesh: &Mesh,
@@ -107,7 +107,7 @@ impl<'res, T: Timeline<'res>> Canvas<'res, T> {
         F: FnMut(&mut RenderInstance),
         G: Geometry,
         M: Material,
-        Mesh: MeshLike<G, M>,
+        Mesh: MeshLike,
     >(
         &self,
         mesh: &Mesh,
