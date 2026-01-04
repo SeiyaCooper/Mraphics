@@ -1,4 +1,7 @@
-use crate::{Action, Animation, MeshHandle, MeshLike, MeshPool, RenderInstance, Scene};
+use crate::{
+    Action, Animation, MeshHandle, MeshLike, MeshPool, RenderInstance, Scene,
+    anim_curve::{AnimCurve, EaseInOutCubic},
+};
 use nalgebra::{UnitQuaternion, UnitVector3, Vector3};
 use std::{cell::RefCell, rc::Rc};
 
@@ -7,6 +10,7 @@ pub struct MeshAnimation<'res, M: MeshLike + 'static> {
     pub on_update: Box<dyn FnMut(&mut M, &mut RenderInstance, f32, f32) + 'res>,
     pub on_start: Box<dyn FnMut() + 'res>,
     pub on_stop: Box<dyn FnMut() + 'res>,
+    pub curve: Box<dyn AnimCurve>,
 }
 
 impl<'res, M: MeshLike + 'static> MeshAnimation<'res, M> {
@@ -16,6 +20,7 @@ impl<'res, M: MeshLike + 'static> MeshAnimation<'res, M> {
             on_update: Box::new(|_, _, _, _| {}),
             on_start: Box::new(|| {}),
             on_stop: Box::new(|| {}),
+            curve: Box::new(EaseInOutCubic),
         }
     }
 
@@ -34,6 +39,11 @@ impl<'res, M: MeshLike + 'static> MeshAnimation<'res, M> {
 
     pub fn with_on_stop<F: FnMut() + 'res>(mut self, closure: F) -> Self {
         self.on_stop = Box::new(closure);
+        self
+    }
+
+    pub fn with_curve<Curve: AnimCurve + 'static>(mut self, curve: Curve) -> Self {
+        self.curve = Box::new(curve);
         self
     }
 }
@@ -57,7 +67,7 @@ impl<'res, M: MeshLike + 'static> Animation<'res> for MeshAnimation<'res, M> {
                 scene
                     .borrow_mut()
                     .acquire_instance_mut_unchecked(self.mesh_id),
-                progress,
+                self.curve.sample(progress),
                 elapsed_time,
             )
         });
@@ -76,6 +86,8 @@ pub struct RotateAxisAngle {
 
     /// The rotation angle in radians for this animation.
     pub angle_rad: f32,
+
+    pub curve: Box<dyn AnimCurve>,
 }
 
 impl RotateAxisAngle {
@@ -88,6 +100,7 @@ impl RotateAxisAngle {
             mesh_id: mesh_handle.id,
             axis,
             angle_rad,
+            curve: Box::new(EaseInOutCubic),
         }
     }
 
@@ -100,7 +113,13 @@ impl RotateAxisAngle {
             mesh_id: mesh_handle.id,
             axis: UnitVector3::new_normalize(axis),
             angle_rad,
+            curve: Box::new(EaseInOutCubic),
         }
+    }
+
+    pub fn with_curve<Curve: AnimCurve + 'static>(mut self, curve: Curve) -> Self {
+        self.curve = Box::new(curve);
+        self
     }
 }
 
@@ -129,8 +148,10 @@ impl Animation<'static> for RotateAxisAngle {
                 .borrow_mut()
                 .acquire_instance_mut_unchecked(self.mesh_id)
                 .set_rotation(
-                    &(UnitQuaternion::from_axis_angle(&self.axis, self.angle_rad * p)
-                        * &*start_rotation.borrow()),
+                    &(UnitQuaternion::from_axis_angle(
+                        &self.axis,
+                        self.angle_rad * self.curve.sample(p),
+                    ) * &*start_rotation.borrow()),
                 );
         });
 
@@ -142,6 +163,8 @@ impl Animation<'static> for RotateAxisAngle {
 pub struct MoveTo {
     pub mesh_id: usize,
     pub target_place: Vector3<f32>,
+
+    pub curve: Box<dyn AnimCurve>,
 }
 
 impl MoveTo {
@@ -152,7 +175,13 @@ impl MoveTo {
         Self {
             mesh_id: mesh_handle.id,
             target_place,
+            curve: Box::new(EaseInOutCubic),
         }
+    }
+
+    pub fn with_curve<Curve: AnimCurve + 'static>(mut self, curve: Curve) -> Self {
+        self.curve = Box::new(curve);
+        self
     }
 }
 
@@ -182,7 +211,8 @@ impl Animation<'static> for MoveTo {
                 .borrow_mut()
                 .acquire_instance_mut_unchecked(self.mesh_id)
                 .move_to(
-                    &(*start_place.borrow() + &((self.target_place - *start_place.borrow()) * p)),
+                    &(*start_place.borrow()
+                        + &((self.target_place - *start_place.borrow()) * self.curve.sample(p))),
                 );
         });
 
@@ -193,6 +223,8 @@ impl Animation<'static> for MoveTo {
 pub struct ScaleTo {
     pub mesh_id: usize,
     pub target_scale: Vector3<f32>,
+
+    pub curve: Box<dyn AnimCurve>,
 }
 
 impl ScaleTo {
@@ -203,7 +235,13 @@ impl ScaleTo {
         Self {
             mesh_id: mesh_handle.id,
             target_scale,
+            curve: Box::new(EaseInOutCubic),
         }
+    }
+
+    pub fn with_curve<Curve: AnimCurve + 'static>(mut self, curve: Curve) -> Self {
+        self.curve = Box::new(curve);
+        self
     }
 }
 
@@ -232,7 +270,8 @@ impl Animation<'static> for ScaleTo {
                 .borrow_mut()
                 .acquire_instance_mut_unchecked(self.mesh_id)
                 .scale_to(
-                    &(*start_scale.borrow() + &((self.target_scale - *start_scale.borrow()) * p)),
+                    &(*start_scale.borrow()
+                        + &((self.target_scale - *start_scale.borrow()) * self.curve.sample(p))),
                 );
         });
 
@@ -243,6 +282,8 @@ impl Animation<'static> for ScaleTo {
 pub struct ScaleBy {
     pub mesh_id: usize,
     pub scale_factor: Vector3<f32>,
+
+    pub curve: Box<dyn AnimCurve>,
 }
 
 impl ScaleBy {
@@ -253,7 +294,14 @@ impl ScaleBy {
         Self {
             mesh_id: mesh_handle.id,
             scale_factor,
+
+            curve: Box::new(EaseInOutCubic),
         }
+    }
+
+    pub fn with_curve<Curve: AnimCurve + 'static>(mut self, curve: Curve) -> Self {
+        self.curve = Box::new(curve);
+        self
     }
 }
 
@@ -285,7 +333,7 @@ impl Animation<'static> for ScaleBy {
                 .acquire_instance_mut_unchecked(self.mesh_id)
                 .scale_to(&start_scale.borrow().component_mul(
                     &(Vector3::from_element(1.0)
-                        + (self.scale_factor - Vector3::from_element(1.0)) * p),
+                        + (self.scale_factor - Vector3::from_element(1.0)) * self.curve.sample(p)),
                 ));
         });
 

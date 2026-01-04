@@ -1,6 +1,9 @@
 use nalgebra::{Matrix3, Vector3};
 
-use crate::{Action, Animation, MeshHandle, MeshLike, MeshPool, Scene};
+use crate::{
+    Action, Animation, MeshHandle, MeshLike, MeshPool, Scene,
+    anim_curve::{AnimCurve, Linear},
+};
 use std::{cell::RefCell, marker::PhantomData, rc::Rc};
 
 pub trait Transformable: MeshLike {
@@ -20,6 +23,8 @@ pub struct PointwiseTransform<
 
     pub transform: Trans,
 
+    pub curve: Box<dyn AnimCurve>,
+
     _marker: PhantomData<M>,
 }
 
@@ -30,8 +35,16 @@ impl<Trans: Fn(&[f32; 3]) -> [f32; 3] + 'static, M: Transformable + 'static>
         Self {
             mesh_id: mesh_handle.id,
             transform: trans,
+
+            curve: Box::new(Linear),
+
             _marker: PhantomData,
         }
+    }
+
+    pub fn with_curve<Curve: AnimCurve + 'static>(mut self, curve: Curve) -> Self {
+        self.curve = Box::new(curve);
+        self
     }
 }
 
@@ -49,7 +62,7 @@ impl<Trans: Fn(&[f32; 3]) -> [f32; 3] + 'static, M: Transformable + 'static> Ani
             let transformed = mesh_pool
                 .borrow_mut()
                 .acquire_mesh_mut_unchecked::<M>(self.mesh_id)
-                .apply_transform(&self.transform, p);
+                .apply_transform(&self.transform, self.curve.sample(p));
 
             transformed.update_geometry_view(
                 &mut scene
@@ -67,7 +80,9 @@ pub struct MatrixTransform<M: Transformable + 'static> {
     /// The unique identifier of the mesh to animate.
     pub mesh_id: usize,
 
-    matrix: Matrix3<f32>,
+    pub matrix: Matrix3<f32>,
+
+    pub curve: Box<dyn AnimCurve>,
 
     _marker: PhantomData<M>,
 }
@@ -77,8 +92,16 @@ impl<M: Transformable + 'static> MatrixTransform<M> {
         Self {
             mesh_id: mesh_handle.id,
             matrix,
+
+            curve: Box::new(Linear),
+
             _marker: PhantomData,
         }
+    }
+
+    pub fn with_curve<Curve: AnimCurve + 'static>(mut self, curve: Curve) -> Self {
+        self.curve = Box::new(curve);
+        self
     }
 }
 
@@ -99,7 +122,7 @@ impl<M: Transformable + 'static> Animation<'static> for MatrixTransform<M> {
                         let transformed = self.matrix * &Vector3::from_row_slice(point);
                         return [transformed[0], transformed[1], transformed[2]];
                     },
-                    p,
+                    self.curve.sample(p),
                 );
 
             transformed.update_geometry_view(
