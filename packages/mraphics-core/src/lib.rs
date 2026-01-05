@@ -19,4 +19,7 @@ pub use math::*;
 mod animation;
 pub use animation::*;
 
+mod traits;
+pub use traits::*;
+
 pub mod constants;

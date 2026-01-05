@@ -1,7 +1,4 @@
-use crate::{
-    GadgetData, GeometryView, Material, MaterialView,
-    constants::{MODEL_MAT_INDEX, MODEL_MAT_LABEL},
-};
+use crate::{GeometryView, Material, MaterialView, constants::MODEL_MAT_LABEL};
 use nalgebra::{Isometry3, Matrix4, Translation3, UnitQuaternion, UnitVector3, Vector3};
 
 pub struct RenderInstance {
@@ -90,14 +87,12 @@ impl RenderInstance {
     }
 
     pub fn sync_matrix_data(&mut self) {
-        self.geometry.reset_uniforms();
-        self.geometry.uniforms.push(GadgetData {
-            label: MODEL_MAT_LABEL.to_string(),
-            index: MODEL_MAT_INDEX,
-            data: bytemuck::cast_slice(self.matrix.as_slice()).to_vec(),
-            needs_update_value: true,
-            needs_update_buffer: true,
-        })
+        self.geometry
+            .set_uniform(
+                MODEL_MAT_LABEL,
+                bytemuck::cast_slice(self.matrix.as_slice()).to_vec(),
+            )
+            .unwrap();
     }
 
     fn update_matrix(&mut self) {

@@ -48,7 +48,13 @@ impl<G: Geometry, M: Material> Renderable for Mesh<G, M> {
     }
 
     fn build_instance(&self) -> RenderInstance {
-        RenderInstance::new(self.identifier, &self.material)
+        let mut instance = RenderInstance::new(self.identifier, &self.material);
+        self.geometry.init_view(&mut instance.geometry);
+
+        self.geometry.update_view(&mut instance.geometry);
+        self.material.update_view(&mut instance.material);
+
+        instance
     }
 }
 

@@ -8,3 +8,9 @@ pub trait Animation<'res> {
         scene: Rc<RefCell<Scene>>,
     ) -> Action<'res>;
 }
+
+pub trait AsIntermediate {
+    type Intermediate;
+
+    fn as_intermediate(&self) -> Self::Intermediate;
+}

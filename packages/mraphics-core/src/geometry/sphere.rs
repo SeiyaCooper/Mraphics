@@ -1,6 +1,5 @@
 use crate::{
-    CustomIndices, GadgetData, Geometry, GeometryIndices, Material, Mesh, Transformable,
-    math_oper::lerp,
+    AsIntermediate, CustomIndices, Geometry, GeometryIndices, Material, Mesh, Transformable,
 };
 use std::f32::consts::PI;
 
@@ -98,6 +97,14 @@ impl Default for Sphere {
 }
 
 impl Geometry for Sphere {
+    fn init_view(&self, view: &mut super::GeometryView) {
+        view.add_attribute(
+            crate::constants::POSITION_ATTR_LABEL,
+            crate::constants::POSITION_ATTR_INDEX,
+            Vec::<u8>::new(),
+        );
+    }
+
     fn update_view(&self, view: &mut super::GeometryView) {
         let mut vertices = Vec::new();
 
@@ -108,16 +115,22 @@ impl Geometry for Sphere {
             vertices.push(1.0);
         }
 
-        view.reset_vertices();
-
-        view.attributes.push(GadgetData {
-            label: String::from(crate::constants::POSITION_ATTR_LABEL),
-            index: crate::constants::POSITION_ATTR_INDEX,
-            data: Vec::from(bytemuck::cast_slice::<f32, u8>(&vertices)),
-            needs_update_value: true,
-            needs_update_buffer: true,
-        });
+        view.set_attribute(
+            crate::constants::POSITION_ATTR_LABEL,
+            Vec::from(bytemuck::cast_slice::<f32, u8>(&vertices)),
+        )
+        .unwrap();
+        view.get_attribute_mut(crate::constants::POSITION_ATTR_LABEL)
+            .unwrap()
+            .needs_update_buffer = true;
         view.indices = GeometryIndices::CustomU16(CustomIndices::new((&self.indices).to_owned()));
+    }
+}
+
+impl<M: Material> AsIntermediate for Mesh<Sphere, M> {
+    type Intermediate = Vec<[f32; 3]>;
+    fn as_intermediate(&self) -> Self::Intermediate {
+        self.geometry.vertices.to_vec()
     }
 }
 
@@ -125,30 +138,13 @@ impl<M: Material> Transformable for Mesh<Sphere, M> {
     fn apply_transform<Trans: Fn(&[f32; 3]) -> [f32; 3]>(
         &self,
         transform: Trans,
-        progress: f32,
-    ) -> Self {
-        let mut transformed_geometry = Sphere::default();
+    ) -> Self::Intermediate {
+        let mut transformed = Vec::new();
 
         for vertex in &self.geometry.vertices {
-            let mut iter = lerp(
-                vertex.iter().copied(),
-                transform(vertex).into_iter(),
-                progress,
-            );
-
-            transformed_geometry.vertices.push([
-                iter.next().unwrap(),
-                iter.next().unwrap(),
-                iter.next().unwrap(),
-            ]);
+            transformed.push(transform(vertex));
         }
 
-        transformed_geometry.indices = self.geometry.indices.to_owned();
-
-        Self {
-            identifier: self.identifier,
-            geometry: transformed_geometry,
-            material: self.material.clone(),
-        }
+        transformed
     }
 }

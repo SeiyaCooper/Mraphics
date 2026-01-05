@@ -48,23 +48,6 @@ impl<'res, T: Timeline<'res>> Canvas<'res, T> {
     pub fn add_mesh<Mesh: MeshLike + 'static>(&self, mesh: Mesh) -> MeshHandle<Mesh> {
         self.scene.borrow_mut().add_renderable(&mesh);
 
-        mesh.update_geometry_view(
-            &mut self
-                .scene
-                .borrow_mut()
-                .acquire_instance_mut(mesh.identifier())
-                .unwrap()
-                .geometry,
-        );
-        mesh.update_material_view(
-            &mut self
-                .scene
-                .borrow_mut()
-                .acquire_instance_mut(mesh.identifier())
-                .unwrap()
-                .material,
-        );
-
         self.scene
             .borrow_mut()
             .acquire_instance_mut_unchecked(mesh.identifier())

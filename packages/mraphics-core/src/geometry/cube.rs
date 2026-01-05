@@ -1,4 +1,4 @@
-use crate::{GadgetData, Geometry, GeometryIndices};
+use crate::{Geometry, GeometryIndices};
 use nalgebra::Vector3;
 
 #[derive(Clone)]
@@ -25,6 +25,14 @@ impl Default for Cube {
 }
 
 impl Geometry for Cube {
+    fn init_view(&self, view: &mut super::GeometryView) {
+        view.add_attribute(
+            crate::constants::POSITION_ATTR_LABEL,
+            crate::constants::POSITION_ATTR_INDEX,
+            Vec::<u8>::new(),
+        );
+    }
+
     fn update_view(&self, view: &mut super::GeometryView) {
         let mut vertices: Vec<f32> = Vec::new();
 
@@ -93,15 +101,14 @@ impl Geometry for Cube {
             -Vector3::y(),
         );
 
-        view.reset_vertices();
-
-        view.attributes.push(GadgetData {
-            label: String::from(crate::constants::POSITION_ATTR_LABEL),
-            index: crate::constants::POSITION_ATTR_INDEX,
-            data: Vec::from(bytemuck::cast_slice::<f32, u8>(&vertices)),
-            needs_update_value: true,
-            needs_update_buffer: true,
-        });
+        view.set_attribute(
+            crate::constants::POSITION_ATTR_LABEL,
+            Vec::from(bytemuck::cast_slice::<f32, u8>(&vertices)),
+        )
+        .unwrap();
+        view.get_attribute_mut(crate::constants::POSITION_ATTR_LABEL)
+            .unwrap()
+            .needs_update_buffer = true;
         view.indices = GeometryIndices::Sequential(vertices.len() as u32);
     }
 }

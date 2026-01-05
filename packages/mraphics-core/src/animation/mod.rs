@@ -5,7 +5,7 @@ mod action;
 pub use action::*;
 
 mod animation;
-pub use animation::Animation;
+pub use animation::*;
 
 pub mod anim_curve;
 
