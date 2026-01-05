@@ -14,7 +14,9 @@ impl Scene {
         }
     }
 
-    pub fn add_renderable<R: Renderable>(&mut self, renderable: &R) {
+    pub fn add_renderable<R: Renderable>(&mut self, renderable: &mut R) {
+        renderable.init();
+
         self.instances.push(renderable.build_instance());
         self.instance_map
             .insert(renderable.identifier(), self.instances.len() - 1);

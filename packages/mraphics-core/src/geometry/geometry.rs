@@ -1,4 +1,4 @@
-use crate::{GadgetData, GadgetIndex, constants};
+use crate::{GadgetData, GadgetIndex, Interpolatable, constants};
 use nalgebra::Matrix4;
 use std::collections::HashMap;
 
@@ -31,14 +31,27 @@ pub enum GeometryViewError {
     UnknownUniformLabel,
 }
 
+/// A view of geometric data that can be consumed by shaders.
+///
+/// This struct represents a collection of attributes, uniforms, and indices
+/// that define a geometry.
 #[derive(Debug)]
 pub struct GeometryView {
+    /// Vertex attributes of the geometry (e.g., position, normal, color).
     pub attributes: Vec<GadgetData>,
+
+    /// Maps attribute labels to their indices in [`Self::attributes`].
+    /// Used for querying a attribute by its label.
     attribute_map: HashMap<String, usize>,
 
+    /// Uniform variables of the geometry.
     pub uniforms: Vec<GadgetData>,
+
+    /// Maps uniform labels to their indices in [`Self::uniforms`].
+    /// Used for querying a uniform by its label.
     uniform_map: HashMap<String, usize>,
 
+    /// Index buffer specifying how vertices are connected.
     pub indices: GeometryIndices,
 }
 
@@ -172,34 +185,78 @@ impl GeometryView {
     }
 }
 
-pub trait Geometry: Clone {
+/// A trait for objects that can both initialize and update a [`GeometryView`].
+///
+/// Types implementing this trait can:
+/// - Create a complete geometry view from scratch
+/// - Modify an existing geometry view (inherited from [`GeometryUpdater`])
+/// - Are cloneable to support duplication of geometric data.
+///
+/// # Required Trait Bounds
+/// - [`GeometryUpdater`]: For updating geometry views
+/// - [`Clone`]: For copying geometric data
+pub trait Geometry: GeometryUpdater + Clone {
+    /// Initializes a new [`GeometryView`].
     fn init_view(&self, view: &mut GeometryView);
+
+    /// Initializes self before initializing geometry view, optional.
+    fn init(&mut self) {}
+}
+
+/// A trait for objects that can update an existing [`GeometryView`].
+///
+/// This is useful for:
+/// - Geometric objects that need incremental updates
+/// - Intermediate representations used in animations
+/// - Any entity that modifies geometry data without recreating it
+pub trait GeometryUpdater {
+    /// Updates an existing [`GeometryView`] with this object's data.
     fn update_view(&self, view: &mut GeometryView);
 }
 
-/// A minimal geometry implementation using a vector of 3D points.
+/// A collection of vertices in homogeneous coordinates (x, y, z, w).
 ///
-/// This is typically used as an intermediate representation used by animations.
+/// This is typically used as an intermediate representation, especially in animations.
+#[derive(Clone)]
+pub struct Vertices {
+    pub data: Vec<[f32; 4]>,
+}
+
+impl Vertices {
+    /// Craetes a new collection of vertices.
+    pub fn new() -> Self {
+        Self { data: Vec::new() }
+    }
+
+    /// Applies a transform.
+    pub fn apply_transform<Trans: Fn(&[f32; 4]) -> [f32; 4]>(&self, transform: Trans) -> Self {
+        Self {
+            data: self.data.iter().map(transform).collect(),
+        }
+    }
+}
+
+impl Interpolatable for Vertices {
+    fn interpolate(&self, to: &Self, p: f32) -> Self {
+        Self {
+            data: self.data.interpolate(&to.data, p),
+        }
+    }
+}
+
+/// Updates a geometry view with [`Vertices`].
 ///
 /// # Notes
 /// This implementation does not modify existing indices
-impl Geometry for Vec<[f32; 3]> {
-    fn init_view(&self, view: &mut GeometryView) {
-        view.add_attribute(
-            crate::constants::POSITION_ATTR_LABEL,
-            crate::constants::POSITION_ATTR_INDEX,
-            Vec::<u8>::new(),
-        );
-    }
-
+impl GeometryUpdater for Vertices {
     fn update_view(&self, view: &mut GeometryView) {
         let mut vertices = Vec::new();
 
-        for vertex in self {
+        for vertex in &self.data {
             vertices.push(vertex[0]);
             vertices.push(vertex[1]);
             vertices.push(vertex[2]);
-            vertices.push(1.0);
+            vertices.push(vertex[3]);
         }
 
         view.set_attribute(
@@ -207,8 +264,5 @@ impl Geometry for Vec<[f32; 3]> {
             Vec::from(bytemuck::cast_slice::<f32, u8>(&vertices)),
         )
         .unwrap();
-        view.get_attribute_mut(crate::constants::POSITION_ATTR_LABEL)
-            .unwrap()
-            .needs_update_buffer = true;
     }
 }

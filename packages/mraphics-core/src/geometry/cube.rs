@@ -1,4 +1,7 @@
-use crate::{Geometry, GeometryIndices};
+use crate::{
+    AsIntermediate, Geometry, GeometryIndices, GeometryUpdater, Material, Mesh, Transformable,
+    Vertices,
+};
 use nalgebra::Vector3;
 
 #[derive(Clone)]
@@ -6,6 +9,8 @@ pub struct Cube {
     pub width: f32,
     pub height: f32,
     pub depth: f32,
+
+    pub vertices: Vertices,
 }
 
 impl Cube {
@@ -20,7 +25,16 @@ impl Default for Cube {
             width: 1.0,
             height: 1.0,
             depth: 1.0,
+
+            vertices: Vertices::new(),
         }
+    }
+}
+
+impl GeometryUpdater for Cube {
+    fn update_view(&self, view: &mut super::GeometryView) {
+        self.vertices.update_view(view);
+        view.indices = GeometryIndices::Sequential(self.vertices.data.len() as u32);
     }
 }
 
@@ -29,12 +43,16 @@ impl Geometry for Cube {
         view.add_attribute(
             crate::constants::POSITION_ATTR_LABEL,
             crate::constants::POSITION_ATTR_INDEX,
-            Vec::<u8>::new(),
+            bytemuck::cast_slice::<f32, u8>(&self.vertices.data.concat()).to_vec(),
         );
     }
 
-    fn update_view(&self, view: &mut super::GeometryView) {
-        let mut vertices: Vec<f32> = Vec::new();
+    fn init(&mut self) {
+        let vertices = &mut self.vertices.data;
+
+        fn to_homogeneous(point: &Vector3<f32>, w: f32) -> [f32; 4] {
+            std::array::from_fn(|i| if i < 3 { point[i] } else { w })
+        }
 
         let mut build_plane =
             |position: Vector3<f32>, width_len: f32, height_len: f32, normal: Vector3<f32>| {
@@ -44,20 +62,12 @@ impl Geometry for Cube {
                 let mut width = height.cross(&normal);
                 width.set_magnitude(width_len);
 
-                vertices.extend(position.iter().chain(std::iter::once(&1.0)));
-                vertices.extend((position + width).iter().chain(std::iter::once(&1.0)));
-                vertices.extend(
-                    (position + width + height)
-                        .iter()
-                        .chain(std::iter::once(&1.0)),
-                );
-                vertices.extend((position + height).iter().chain(std::iter::once(&1.0)));
-                vertices.extend(position.iter().chain(std::iter::once(&1.0)));
-                vertices.extend(
-                    (position + width + height)
-                        .iter()
-                        .chain(std::iter::once(&1.0)),
-                );
+                vertices.push(to_homogeneous(&position, 1.0));
+                vertices.push(to_homogeneous(&(position + width), 1.0));
+                vertices.push(to_homogeneous(&(position + width + height), 1.0));
+                vertices.push(to_homogeneous(&(position + height), 1.0));
+                vertices.push(to_homogeneous(&position, 1.0));
+                vertices.push(to_homogeneous(&(position + width + height), 1.0));
             };
 
         let w = self.width;
@@ -100,15 +110,24 @@ impl Geometry for Cube {
             w,
             -Vector3::y(),
         );
+    }
+}
 
-        view.set_attribute(
-            crate::constants::POSITION_ATTR_LABEL,
-            Vec::from(bytemuck::cast_slice::<f32, u8>(&vertices)),
-        )
-        .unwrap();
-        view.get_attribute_mut(crate::constants::POSITION_ATTR_LABEL)
-            .unwrap()
-            .needs_update_buffer = true;
-        view.indices = GeometryIndices::Sequential(vertices.len() as u32);
+impl<M: Material> AsIntermediate for Mesh<Cube, M> {
+    type Intermediate = Vertices;
+    fn as_intermediate(&self) -> Self::Intermediate {
+        self.geometry.vertices.clone()
+    }
+}
+
+impl<M: Material> Transformable for Mesh<Cube, M> {
+    fn apply_transform<Trans: Fn(&[f32; 3]) -> [f32; 3]>(
+        &self,
+        transform: Trans,
+    ) -> Self::Intermediate {
+        self.geometry.vertices.apply_transform(|vertex| {
+            let transformed = transform(&[vertex[0], vertex[1], vertex[2]]);
+            [transformed[0], transformed[1], transformed[2], 1.0]
+        })
     }
 }

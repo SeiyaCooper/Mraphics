@@ -1,5 +1,6 @@
 use crate::{
-    AsIntermediate, CustomIndices, Geometry, GeometryIndices, Material, Mesh, Transformable,
+    AsIntermediate, CustomIndices, Geometry, GeometryIndices, GeometryUpdater, Material, Mesh,
+    Transformable, Vertices,
 };
 use std::f32::consts::PI;
 
@@ -15,19 +16,54 @@ pub struct Sphere {
     pub theta_end: f32,
     pub theta_segments: u16,
 
-    pub vertices: Vec<[f32; 3]>,
+    pub vertices: Vertices,
     pub indices: Vec<u16>,
 }
 
 impl Sphere {
     pub fn new() -> Self {
-        let mut out = Self::default();
-        out.update();
-        out
+        Self::default()
+    }
+}
+
+impl Default for Sphere {
+    fn default() -> Self {
+        Self {
+            radius: 1.0,
+            phi_start: 0.0,
+            phi_end: PI * 2.0,
+            phi_segments: 32,
+            theta_start: 0.0,
+            theta_end: PI,
+            theta_segments: 16,
+            vertices: Vertices::new(),
+            indices: Vec::new(),
+        }
+    }
+}
+
+impl GeometryUpdater for Sphere {
+    fn update_view(&self, view: &mut super::GeometryView) {
+        self.vertices.update_view(view);
+
+        view.get_attribute_mut(crate::constants::POSITION_ATTR_LABEL)
+            .unwrap()
+            .needs_update_buffer = true;
+        view.indices = GeometryIndices::CustomU16(CustomIndices::new((&self.indices).to_owned()));
+    }
+}
+
+impl Geometry for Sphere {
+    fn init_view(&self, view: &mut super::GeometryView) {
+        view.add_attribute(
+            crate::constants::POSITION_ATTR_LABEL,
+            crate::constants::POSITION_ATTR_INDEX,
+            Vec::<u8>::new(),
+        );
     }
 
-    pub fn update(&mut self) {
-        self.vertices = Vec::new();
+    fn init(&mut self) {
+        self.vertices = Vertices::new();
         self.indices = Vec::new();
 
         let r = self.radius;
@@ -42,10 +78,11 @@ impl Sphere {
                 let phi = self.phi_start + j * phi_unit;
                 let theta = self.theta_start + i * theta_unit;
 
-                self.vertices.push([
+                self.vertices.data.push([
                     r * phi.cos() * theta.sin(),
                     r * theta.cos(),
                     r * phi.sin() * theta.sin(),
+                    1.0,
                 ]);
             }
         }
@@ -80,57 +117,10 @@ impl Sphere {
     }
 }
 
-impl Default for Sphere {
-    fn default() -> Self {
-        Self {
-            radius: 1.0,
-            phi_start: 0.0,
-            phi_end: PI * 2.0,
-            phi_segments: 32,
-            theta_start: 0.0,
-            theta_end: PI,
-            theta_segments: 16,
-            vertices: Vec::new(),
-            indices: Vec::new(),
-        }
-    }
-}
-
-impl Geometry for Sphere {
-    fn init_view(&self, view: &mut super::GeometryView) {
-        view.add_attribute(
-            crate::constants::POSITION_ATTR_LABEL,
-            crate::constants::POSITION_ATTR_INDEX,
-            Vec::<u8>::new(),
-        );
-    }
-
-    fn update_view(&self, view: &mut super::GeometryView) {
-        let mut vertices = Vec::new();
-
-        for vertex in &self.vertices {
-            vertices.push(vertex[0]);
-            vertices.push(vertex[1]);
-            vertices.push(vertex[2]);
-            vertices.push(1.0);
-        }
-
-        view.set_attribute(
-            crate::constants::POSITION_ATTR_LABEL,
-            Vec::from(bytemuck::cast_slice::<f32, u8>(&vertices)),
-        )
-        .unwrap();
-        view.get_attribute_mut(crate::constants::POSITION_ATTR_LABEL)
-            .unwrap()
-            .needs_update_buffer = true;
-        view.indices = GeometryIndices::CustomU16(CustomIndices::new((&self.indices).to_owned()));
-    }
-}
-
 impl<M: Material> AsIntermediate for Mesh<Sphere, M> {
-    type Intermediate = Vec<[f32; 3]>;
+    type Intermediate = Vertices;
     fn as_intermediate(&self) -> Self::Intermediate {
-        self.geometry.vertices.to_vec()
+        self.geometry.vertices.clone()
     }
 }
 
@@ -139,12 +129,9 @@ impl<M: Material> Transformable for Mesh<Sphere, M> {
         &self,
         transform: Trans,
     ) -> Self::Intermediate {
-        let mut transformed = Vec::new();
-
-        for vertex in &self.geometry.vertices {
-            transformed.push(transform(vertex));
-        }
-
-        transformed
+        self.geometry.vertices.apply_transform(|vertex| {
+            let transformed = transform(&[vertex[0], vertex[1], vertex[2]]);
+            [transformed[0], transformed[1], transformed[2], 1.0]
+        })
     }
 }

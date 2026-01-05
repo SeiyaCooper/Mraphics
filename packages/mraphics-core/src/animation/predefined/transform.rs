@@ -1,16 +1,21 @@
-use nalgebra::{Matrix3, Vector3};
-
 use crate::{
-    Action, Animation, AsIntermediate, Geometry, Interpolatable, MeshHandle, MeshLike, MeshPool,
-    Scene,
+    Action, Animation, AsIntermediate, GeometryUpdater, Interpolatable, MeshHandle, MeshLike,
+    MeshPool, Scene,
     anim_curve::{AnimCurve, Linear},
 };
+use nalgebra::{Matrix3, Vector3};
 use std::{cell::RefCell, marker::PhantomData, rc::Rc};
 
+/// Requriements to perform a [`PointwiseTransform`] or [`MatrixTransform`]
 pub trait Transformable: MeshLike + AsIntermediate
 where
-    Self::Intermediate: Geometry,
+    Self::Intermediate: Interpolatable + GeometryUpdater,
 {
+    /// Applies a transform function to self, and returns a intermediate representation.
+    ///
+    /// The intermediate representation must satisfies
+    /// - [`GeometryUpdater`]: For updating geometry view.
+    /// - [`Interpolatable`]: For performing a tweening animation.
     fn apply_transform<Trans: Fn(&[f32; 3]) -> [f32; 3]>(
         &self,
         transform: Trans,
@@ -21,13 +26,15 @@ pub struct PointwiseTransform<Trans, M>
 where
     Trans: Fn(&[f32; 3]) -> [f32; 3] + 'static,
     M: Transformable + 'static,
-    M::Intermediate: Interpolatable + Geometry,
+    M::Intermediate: Interpolatable + GeometryUpdater,
 {
     /// The unique identifier of the mesh to animate.
     pub mesh_id: usize,
 
+    /// The transform function to apply.
     pub transform: Trans,
 
+    /// Animation curve.
     pub curve: Box<dyn AnimCurve>,
 
     _marker: PhantomData<M>,
@@ -37,7 +44,7 @@ impl<Trans, M> PointwiseTransform<Trans, M>
 where
     Trans: Fn(&[f32; 3]) -> [f32; 3] + 'static,
     M: Transformable + 'static,
-    M::Intermediate: Interpolatable + Geometry,
+    M::Intermediate: Interpolatable + GeometryUpdater,
 {
     pub fn new(mesh_handle: &MeshHandle<M>, trans: Trans) -> Self {
         Self {
@@ -60,7 +67,7 @@ impl<Trans, M> Animation<'static> for PointwiseTransform<Trans, M>
 where
     Trans: Fn(&[f32; 3]) -> [f32; 3] + 'static,
     M: Transformable + 'static,
-    M::Intermediate: Interpolatable + Geometry,
+    M::Intermediate: Interpolatable + GeometryUpdater,
 {
     fn into_action(
         self,
@@ -115,7 +122,7 @@ where
 pub struct MatrixTransform<M>
 where
     M: Transformable + 'static,
-    M::Intermediate: Interpolatable + Geometry,
+    M::Intermediate: Interpolatable + GeometryUpdater,
 {
     /// The unique identifier of the mesh to animate.
     pub mesh_id: usize,
@@ -130,7 +137,7 @@ where
 impl<M> MatrixTransform<M>
 where
     M: Transformable + 'static,
-    M::Intermediate: Interpolatable + Geometry,
+    M::Intermediate: Interpolatable + GeometryUpdater,
 {
     pub fn new(mesh_handle: &MeshHandle<M>, matrix: Matrix3<f32>) -> Self {
         Self {
@@ -152,7 +159,7 @@ where
 impl<M> Animation<'static> for MatrixTransform<M>
 where
     M: Transformable + 'static,
-    M::Intermediate: Interpolatable + Geometry,
+    M::Intermediate: Interpolatable + GeometryUpdater,
 {
     fn into_action(
         self,

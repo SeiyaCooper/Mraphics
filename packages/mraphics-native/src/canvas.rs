@@ -45,8 +45,8 @@ impl<'res, T: Timeline<'res>> Canvas<'res, T> {
         }
     }
 
-    pub fn add_mesh<Mesh: MeshLike + 'static>(&self, mesh: Mesh) -> MeshHandle<Mesh> {
-        self.scene.borrow_mut().add_renderable(&mesh);
+    pub fn add_mesh<Mesh: MeshLike + 'static>(&self, mut mesh: Mesh) -> MeshHandle<Mesh> {
+        self.scene.borrow_mut().add_renderable(&mut mesh);
 
         self.scene
             .borrow_mut()

@@ -1,6 +1,6 @@
 use mraphics_core::{
-    BasicMaterial, Geometry, GeometryView, Material, MaterialView, Mesh, MeshLike, RenderInstance,
-    Renderable, Sphere,
+    BasicMaterial, GeometryUpdater, GeometryView, Material, MaterialView, Mesh, MeshLike,
+    RenderInstance, Renderable, Sphere,
 };
 #[cfg(feature = "wasm")]
 use wasm_bindgen::prelude::wasm_bindgen;
