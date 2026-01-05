@@ -12,5 +12,5 @@ repository.workspace = true
 wasm = ["dep:wasm-bindgen"]
 
 [dependencies]
-wasm-bindgen = { version = "0.2.106", optional = true }
+wasm-bindgen = { workspace = true, optional = true }
 mraphics-core = { workspace = true }

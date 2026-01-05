@@ -1,5 +1,5 @@
 use mraphics::{
-    BasicMaterial, Color, Geometry, LogicalTimeline, Material, Mesh, MeshLike, OrbitControl,
+    BasicMaterial, Color, LogicalTimeline, Mesh, MeshLike, MeshPool, OrbitControl,
     PerspectiveCamera, Renderable, Renderer, Scene, Sphere, Timeline,
 };
 use std::{cell::RefCell, rc::Rc, sync::Arc};
@@ -19,13 +19,16 @@ pub struct Canvas {
     pub camera: PerspectiveCamera,
     #[wasm_bindgen(skip)]
     pub renderer: Option<Renderer<'static>>,
+
     #[wasm_bindgen(skip)]
     pub scene: Rc<RefCell<Scene>>,
+    #[wasm_bindgen(skip)]
+    pub mesh_pool: Rc<RefCell<MeshPool>>,
 
     proxy: Option<winit::event_loop::EventLoopProxy<Renderer<'static>>>,
 
     #[wasm_bindgen(skip)]
-    pub timeline: Rc<RefCell<Box<dyn Timeline>>>,
+    pub timeline: Rc<RefCell<Box<dyn Timeline<'static>>>>,
 
     pub playhead: f32,
 
@@ -46,6 +49,7 @@ impl Canvas {
             camera: PerspectiveCamera::default(),
             renderer: None,
             scene: Rc::new(RefCell::new(Scene::new())),
+            mesh_pool: Rc::new(RefCell::new(MeshPool::new())),
 
             proxy: None,
 
@@ -62,7 +66,7 @@ impl Canvas {
         let test_mesh = Mesh::new(Sphere::default(), BasicMaterial::new());
         self.scene.borrow_mut().add_renderable(&test_mesh);
 
-        test_mesh.geometry().update_view(
+        test_mesh.update_geometry_view(
             &mut self
                 .scene
                 .borrow_mut()
@@ -70,7 +74,7 @@ impl Canvas {
                 .unwrap()
                 .geometry,
         );
-        test_mesh.material().update_view(
+        test_mesh.update_material_view(
             &mut self
                 .scene
                 .borrow_mut()
@@ -181,7 +185,7 @@ impl winit::application::ApplicationHandler<Renderer<'static>> for Canvas {
 
                 renderer
                     .render(
-                        &mut self.scene.borrow_mut(),
+                        &mut self.scene.borrow_mut().instances,
                         &self.camera,
                         &self.clear_color,
                     )
