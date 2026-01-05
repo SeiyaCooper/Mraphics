@@ -3,52 +3,114 @@ use crate::{
     anim_curve::{AnimCurve, EaseInOutCubic},
 };
 use nalgebra::{UnitQuaternion, UnitVector3, Vector3};
-use std::{cell::RefCell, rc::Rc};
+use std::{cell::RefCell, marker::PhantomData, rc::Rc};
 
-pub struct MeshAnimation<'res, M: MeshLike + 'static> {
+pub struct MeshAnimation<'res, M, Update, Start, Stop, C>
+where
+    M: MeshLike + 'static,
+    Update: FnMut(&mut M, &mut RenderInstance, f32, f32) + 'res,
+    Start: FnMut() + 'res,
+    Stop: FnMut() + 'res,
+    C: AnimCurve + 'static,
+{
     pub mesh_id: usize,
-    pub on_update: Box<dyn FnMut(&mut M, &mut RenderInstance, f32, f32) + 'res>,
-    pub on_start: Box<dyn FnMut() + 'res>,
-    pub on_stop: Box<dyn FnMut() + 'res>,
-    pub curve: Box<dyn AnimCurve>,
+    pub on_update: Update,
+    pub on_start: Start,
+    pub on_stop: Stop,
+    pub curve: C,
+
+    _marker: PhantomData<&'res M>,
 }
 
-impl<'res, M: MeshLike + 'static> MeshAnimation<'res, M> {
+impl<'res, M: MeshLike + 'static>
+    MeshAnimation<'res, M, fn(&mut M, &mut RenderInstance, f32, f32), fn(), fn(), EaseInOutCubic>
+{
     pub fn new(mesh_handle: &MeshHandle<M>) -> Self {
         Self {
             mesh_id: mesh_handle.id,
-            on_update: Box::new(|_, _, _, _| {}),
-            on_start: Box::new(|| {}),
-            on_stop: Box::new(|| {}),
-            curve: Box::new(EaseInOutCubic),
+            on_update: |_, _, _, _| {},
+            on_start: || {},
+            on_stop: || {},
+            curve: EaseInOutCubic,
+            _marker: PhantomData,
         }
-    }
-
-    pub fn with_on_update<F: FnMut(&mut M, &mut RenderInstance, f32, f32) + 'res>(
-        mut self,
-        closure: F,
-    ) -> Self {
-        self.on_update = Box::new(closure);
-        self
-    }
-
-    pub fn with_on_start<F: FnMut() + 'res>(mut self, closure: F) -> Self {
-        self.on_start = Box::new(closure);
-        self
-    }
-
-    pub fn with_on_stop<F: FnMut() + 'res>(mut self, closure: F) -> Self {
-        self.on_stop = Box::new(closure);
-        self
-    }
-
-    pub fn with_curve<Curve: AnimCurve + 'static>(mut self, curve: Curve) -> Self {
-        self.curve = Box::new(curve);
-        self
     }
 }
 
-impl<'res, M: MeshLike + 'static> Animation<'res> for MeshAnimation<'res, M> {
+impl<'res, M, Update, Start, Stop, C> MeshAnimation<'res, M, Update, Start, Stop, C>
+where
+    M: MeshLike + 'static,
+    Update: FnMut(&mut M, &mut RenderInstance, f32, f32) + 'res,
+    Start: FnMut() + 'res,
+    Stop: FnMut() + 'res,
+    C: AnimCurve + 'static,
+{
+    pub fn with_on_update<F: FnMut(&mut M, &mut RenderInstance, f32, f32) + 'res>(
+        self,
+        closure: F,
+    ) -> MeshAnimation<'res, M, F, Start, Stop, C> {
+        MeshAnimation {
+            mesh_id: self.mesh_id,
+            on_update: closure,
+            on_start: self.on_start,
+            on_stop: self.on_stop,
+            curve: self.curve,
+            _marker: PhantomData,
+        }
+    }
+
+    pub fn with_on_start<F: FnMut() + 'res>(
+        self,
+        closure: F,
+    ) -> MeshAnimation<'res, M, Update, F, Stop, C> {
+        MeshAnimation {
+            mesh_id: self.mesh_id,
+            on_update: self.on_update,
+            on_start: closure,
+            on_stop: self.on_stop,
+            curve: self.curve,
+            _marker: PhantomData,
+        }
+    }
+
+    pub fn with_on_stop<F: FnMut() + 'res>(
+        self,
+        closure: F,
+    ) -> MeshAnimation<'res, M, Update, Start, F, C> {
+        MeshAnimation {
+            mesh_id: self.mesh_id,
+            on_update: self.on_update,
+            on_start: self.on_start,
+            on_stop: closure,
+            curve: self.curve,
+            _marker: PhantomData,
+        }
+    }
+
+    pub fn with_curve<T: AnimCurve + 'static>(
+        self,
+        curve: T,
+    ) -> MeshAnimation<'res, M, Update, Start, Stop, T> {
+        MeshAnimation {
+            mesh_id: self.mesh_id,
+            on_update: self.on_update,
+            on_start: self.on_start,
+            on_stop: self.on_stop,
+            curve,
+            _marker: PhantomData,
+        }
+    }
+}
+
+impl<'res, M, Update, Start, Stop, C> Animation<'res>
+    for MeshAnimation<'res, M, Update, Start, Stop, C>
+where
+    M: MeshLike + 'static,
+    Update: FnMut(&mut M, &mut RenderInstance, f32, f32) + 'res,
+    Start: FnMut() + 'res,
+    Stop: FnMut() + 'res,
+    C: AnimCurve + 'static,
+{
     fn into_action(
         mut self,
         mesh_pool: Rc<RefCell<MeshPool>>,
@@ -56,8 +118,8 @@ impl<'res, M: MeshLike + 'static> Animation<'res> for MeshAnimation<'res, M> {
     ) -> Action<'res> {
         let mut out = Action::new();
 
-        out.on_start = self.on_start;
-        out.on_stop = self.on_stop;
+        out.on_start = Box::new(self.on_start);
+        out.on_stop = Box::new(self.on_stop);
 
         out.on_update = Box::new(move |progress, elapsed_time| {
             (self.on_update)(
