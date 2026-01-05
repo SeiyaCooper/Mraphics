@@ -25,7 +25,7 @@ You can install Mraphics from crates.io:
 mraphics = "0.0.2"
 ```
 
-Alternatively, you can install from latest git commit:
+Alternatively, you can install from the latest git commit:
 ```toml
 [dependencies]
 mraphics = { git = "https://github.com/SeiyaCooper/Mraphics" }
