@@ -9,7 +9,8 @@ homepage.workspace = true
 repository.workspace = true
 
 [dependencies]
-wgpu = "27.0.1"
-winit = "0.30.5"
+wgpu = { workspace = true }
+winit = { workspace = true }
 pollster = { workspace = true }
+image = { workspace = true }
 mraphics-core = { workspace = true }

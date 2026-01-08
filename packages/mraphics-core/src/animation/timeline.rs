@@ -11,6 +11,7 @@ pub enum TimelineState {
 
 pub trait Timeline<'res> {
     fn current_time(&self) -> f32;
+    fn seek(&mut self, time: f32);
     fn state(&self) -> &TimelineState;
 
     fn start(&mut self);
@@ -54,6 +55,10 @@ impl<'res> LogicalTimeline<'res> {
 impl<'res> Timeline<'res> for LogicalTimeline<'res> {
     fn current_time(&self) -> f32 {
         (self.current_frame as f32) * (1.0 / self.logical_fps)
+    }
+
+    fn seek(&mut self, time: f32) {
+        self.current_frame = (self.logical_fps * time) as i32;
     }
 
     fn state(&self) -> &TimelineState {
@@ -117,6 +122,10 @@ impl<'res> PhysicalTimeline<'res> {
 impl<'res> Timeline<'res> for PhysicalTimeline<'res> {
     fn current_time(&self) -> f32 {
         self.current_time
+    }
+
+    fn seek(&mut self, time: f32) {
+        self.current_time = time;
     }
 
     fn state(&self) -> &TimelineState {

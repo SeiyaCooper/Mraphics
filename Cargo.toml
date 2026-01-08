@@ -33,6 +33,7 @@ nalgebra = "0.34.1"
 bytemuck = "1.24.0"
 num-traits = "0.2.19"
 pollster = "0.3"
+image = "0.25.9"
 
 [features]
 default = ["native", "control", "wasm"]

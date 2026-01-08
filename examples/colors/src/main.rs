@@ -1,8 +1,10 @@
-use mraphics::{BasicMaterial, Canvas, Color, LogicalTimeline, Point3D, constants::*};
+use mraphics::{
+    BasicMaterial, Canvas, Color, LogicalTimeline, PerspectiveCamera, Point3D, constants::*,
+};
 use nalgebra::Vector3;
 
 fn main() {
-    let mut canvas = Canvas::new(LogicalTimeline::new());
+    let mut canvas = Canvas::new(LogicalTimeline::new(), PerspectiveCamera::default());
     canvas.clear_color = Color::from_hex_str("#1f1f22ff").unwrap();
 
     let color_strs = [

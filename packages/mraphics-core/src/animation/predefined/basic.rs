@@ -386,8 +386,6 @@ impl Animation<'static> for ScaleBy {
                     .acquire_instance_unchecked(self.mesh_id)
                     .scale(),
             );
-
-            println!("{:?}", start_scale_clone.borrow());
         });
         out.on_update = Box::new(move |p, _| {
             scene

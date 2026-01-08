@@ -51,6 +51,63 @@ impl Renderer {
         }
     }
 
+    pub fn read_texture_rgbau8(&self, texture: &Texture, size: (u32, u32)) -> Vec<u8> {
+        let (width, height) = size;
+        let buffer_size = (width * height * 4) as wgpu::BufferAddress;
+        let buffer = self.device.create_buffer(&wgpu::BufferDescriptor {
+            label: Some("Mraphics Texture Mapping Buffer"),
+            size: buffer_size,
+            usage: wgpu::BufferUsages::COPY_DST | wgpu::BufferUsages::MAP_READ,
+            mapped_at_creation: false,
+        });
+
+        let mut encoder = self
+            .device
+            .create_command_encoder(&wgpu::CommandEncoderDescriptor::default());
+
+        encoder.copy_texture_to_buffer(
+            wgpu::TexelCopyTextureInfoBase {
+                texture,
+                mip_level: 0,
+                origin: wgpu::Origin3d::ZERO,
+                aspect: wgpu::TextureAspect::All,
+            },
+            wgpu::TexelCopyBufferInfoBase {
+                buffer: &buffer,
+                layout: wgpu::TexelCopyBufferLayout {
+                    offset: 0,
+                    bytes_per_row: Some(width * 4),
+                    rows_per_image: Some(height),
+                },
+            },
+            wgpu::Extent3d {
+                width,
+                height,
+                depth_or_array_layers: 1,
+            },
+        );
+
+        self.queue.submit(std::iter::once(encoder.finish()));
+
+        let (sender, receiver) = std::sync::mpsc::sync_channel(1);
+
+        buffer.map_async(wgpu::MapMode::Read, .., move |result| {
+            sender.send(result).unwrap();
+        });
+
+        self.device
+            .poll(wgpu::PollType::wait_indefinitely())
+            .unwrap();
+
+        receiver.recv().unwrap().unwrap();
+
+        let data = buffer.get_mapped_range(..).to_vec();
+
+        buffer.unmap();
+
+        data
+    }
+
     pub fn render<C: Camera>(
         &mut self,
         texture: &Texture,

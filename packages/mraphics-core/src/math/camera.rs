@@ -8,6 +8,8 @@ pub trait Camera {
 
     fn look_at(&mut self, target: &Point3<f32>);
     fn set_center(&mut self, center: &Vector3<f32>);
+
+    fn set_aspect(&mut self, aspect: f32);
 }
 
 pub struct PerspectiveCamera {
@@ -30,11 +32,6 @@ impl PerspectiveCamera {
         self.view_transform =
             Isometry3::new(self.view_transform.translation.vector, rotarion.clone());
         self.view_mat = self.view_transform.to_homogeneous();
-    }
-
-    pub fn set_aspect(&mut self, aspect: f32) {
-        self.proj_transform.set_aspect(aspect);
-        self.proj_mat = self.proj_transform.to_homogeneous();
     }
 
     pub fn set_far(&mut self, far: f32) {
@@ -96,5 +93,10 @@ impl Camera for PerspectiveCamera {
         self.center.copy_from(&center);
         self.view_transform.translation.vector.copy_from(&-center);
         self.view_mat = self.view_transform.to_homogeneous();
+    }
+
+    fn set_aspect(&mut self, aspect: f32) {
+        self.proj_transform.set_aspect(aspect);
+        self.proj_mat = self.proj_transform.to_homogeneous();
     }
 }
