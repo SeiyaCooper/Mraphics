@@ -3,12 +3,16 @@ use mraphics_core::{
     Scene, Timeline,
 };
 use std::{cell::RefCell, marker::PhantomData, rc::Rc, sync::Arc, time::Duration};
+use wgpu::{Surface, SurfaceConfiguration};
 use winit::{event::WindowEvent, event_loop::EventLoop, window::Window};
 
 pub struct Canvas<'res, T: Timeline<'res>> {
     pub window: Option<Arc<Window>>,
     pub camera: PerspectiveCamera,
-    pub renderer: Option<Renderer<'static>>,
+
+    pub renderer: Option<Renderer>,
+    surface: Option<Surface<'static>>,
+    surface_config: Option<SurfaceConfiguration>,
 
     pub scene: Rc<RefCell<Scene>>,
     pub mesh_pool: Rc<RefCell<MeshPool>>,
@@ -29,7 +33,10 @@ impl<'res, T: Timeline<'res>> Canvas<'res, T> {
         Self {
             window: None,
             camera: PerspectiveCamera::default(),
+
             renderer: None,
+            surface: None,
+            surface_config: None,
 
             scene: Rc::new(RefCell::new(Scene::new())),
             mesh_pool: Rc::new(RefCell::new(MeshPool::new())),
@@ -101,6 +108,18 @@ impl<'res, T: Timeline<'res>> Canvas<'res, T> {
     ) {
         closure(self.scene.clone(), self.timeline.clone())
     }
+
+    fn resize(&mut self, width: u32, height: u32) {
+        let surface_config = self.surface_config.as_mut().unwrap();
+
+        surface_config.width = width;
+        surface_config.height = height;
+
+        self.surface
+            .as_mut()
+            .unwrap()
+            .configure(&self.renderer.as_ref().unwrap().device, surface_config);
+    }
 }
 
 impl<'res, T: Timeline<'res>> winit::application::ApplicationHandler for Canvas<'res, T> {
@@ -116,15 +135,19 @@ impl<'res, T: Timeline<'res>> winit::application::ApplicationHandler for Canvas<
             ..Default::default()
         });
 
-        let surface = instance
-            .create_surface(Arc::clone(self.window.as_ref().unwrap()))
-            .unwrap();
+        self.surface = Some(
+            instance
+                .create_surface(Arc::clone(self.window.as_ref().unwrap()))
+                .unwrap(),
+        );
 
         pollster::block_on(async {
+            let surface = self.surface.as_ref().unwrap();
+
             let adapter = instance
                 .request_adapter(&wgpu::RequestAdapterOptions {
                     force_fallback_adapter: false,
-                    compatible_surface: Some(&surface),
+                    compatible_surface: Some(surface),
                     ..Default::default()
                 })
                 .await
@@ -135,7 +158,22 @@ impl<'res, T: Timeline<'res>> winit::application::ApplicationHandler for Canvas<
                 .await
                 .unwrap();
 
-            self.renderer = Some(Renderer::new(surface, device, queue, &adapter));
+            let surface_caps = surface.get_capabilities(&adapter);
+            let surface_config = wgpu::SurfaceConfiguration {
+                width: 100,
+                height: 100,
+                usage: wgpu::TextureUsages::RENDER_ATTACHMENT,
+                format: wgpu::TextureFormat::Rgba8Unorm,
+                present_mode: surface_caps.present_modes[0],
+                alpha_mode: surface_caps.alpha_modes[0],
+                view_formats: vec![],
+                desired_maximum_frame_latency: 2,
+            };
+
+            surface.configure(&device, &surface_config);
+
+            self.surface_config = Some(surface_config);
+            self.renderer = Some(Renderer::new(device, queue));
         });
 
         self.timeline.borrow_mut().start();
@@ -155,23 +193,28 @@ impl<'res, T: Timeline<'res>> winit::application::ApplicationHandler for Canvas<
                 self.camera
                     .set_aspect(size.width as f32 / size.height as f32);
 
-                self.renderer
-                    .as_mut()
-                    .unwrap()
-                    .resize(size.width, size.height);
+                self.resize(size.width, size.height);
             }
             WindowEvent::RedrawRequested => {
                 self.timeline.borrow_mut().forward();
 
-                self.renderer
-                    .as_mut()
-                    .unwrap()
-                    .render(
-                        &mut self.scene.borrow_mut().instances,
-                        &self.camera,
-                        &self.clear_color,
-                    )
-                    .unwrap();
+                let texture = match self.surface.as_ref().unwrap().get_current_texture() {
+                    Ok(texture) => texture,
+                    Err(_) => {
+                        // Ignores this error
+                        return;
+                    }
+                };
+
+                self.renderer.as_mut().unwrap().render(
+                    &texture,
+                    self.surface_config.as_ref().unwrap().format,
+                    &mut self.scene.borrow_mut().instances,
+                    &self.camera,
+                    &self.clear_color,
+                );
+
+                texture.present();
 
                 self.window.as_ref().unwrap().request_redraw();
             }

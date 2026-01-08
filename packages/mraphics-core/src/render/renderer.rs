@@ -1,5 +1,3 @@
-use wgpu::util::DeviceExt;
-
 use crate::constants::{
     INDEX_BUFFER_LABEL, PROJECTION_MAT_INDEX, PROJECTION_MAT_LABEL, VIEW_MAT_INDEX, VIEW_MAT_LABEL,
 };
@@ -7,10 +5,10 @@ use crate::{
     Camera, Color, Conveyor, ConveyorManager, GadgetData, GadgetDescriptor, GeometryIndices,
     PipelineManager, RenderInstance,
 };
+use wgpu::util::DeviceExt;
+use wgpu::{SurfaceTexture, TextureFormat};
 
-pub struct Renderer<'window> {
-    pub surface: wgpu::Surface<'window>,
-    pub surface_config: wgpu::SurfaceConfiguration,
+pub struct Renderer {
     pub device: wgpu::Device,
     pub queue: wgpu::Queue,
 
@@ -20,27 +18,8 @@ pub struct Renderer<'window> {
     shared_conveyor: Conveyor,
 }
 
-impl<'window> Renderer<'window> {
-    pub fn new(
-        surface: wgpu::Surface<'window>,
-        device: wgpu::Device,
-        queue: wgpu::Queue,
-        adapter: &wgpu::Adapter,
-    ) -> Self {
-        let surface_caps = surface.get_capabilities(adapter);
-        let surface_config = wgpu::SurfaceConfiguration {
-            width: 100,
-            height: 100,
-            usage: wgpu::TextureUsages::RENDER_ATTACHMENT,
-            format: wgpu::TextureFormat::Rgba8Unorm,
-            present_mode: surface_caps.present_modes[0],
-            alpha_mode: surface_caps.alpha_modes[0],
-            view_formats: vec![],
-            desired_maximum_frame_latency: 2,
-        };
-
-        surface.configure(&device, &surface_config);
-
+impl Renderer {
+    pub fn new(device: wgpu::Device, queue: wgpu::Queue) -> Self {
         let mut shared_conveyor = Conveyor::new();
         shared_conveyor.upsert_gadget(
             &device,
@@ -64,8 +43,6 @@ impl<'window> Renderer<'window> {
         );
 
         Self {
-            surface,
-            surface_config,
             device,
             queue,
             pipeline_manager: PipelineManager::new(),
@@ -77,12 +54,13 @@ impl<'window> Renderer<'window> {
 
     pub fn render<C: Camera>(
         &mut self,
+        texture: &SurfaceTexture,
+        texture_format: TextureFormat,
         instances: &mut [RenderInstance],
         camera: &C,
         clear_color: &Color<f64>,
-    ) -> Result<(), wgpu::SurfaceError> {
-        let output = self.surface.get_current_texture()?;
-        let view = output
+    ) {
+        let view = texture
             .texture
             .create_view(&wgpu::TextureViewDescriptor::default());
 
@@ -124,20 +102,17 @@ impl<'window> Renderer<'window> {
             .unwrap();
 
         for instance in instances {
-            self.render_instance(&mut render_pass, instance);
+            self.render_instance(texture_format, &mut render_pass, instance);
         }
 
         drop(render_pass);
 
         self.queue.submit(std::iter::once(encoder.finish()));
-
-        output.present();
-
-        Ok(())
     }
 
-    pub fn render_instance(
+    fn render_instance(
         &mut self,
+        texture_format: TextureFormat,
         render_pass: &mut wgpu::RenderPass,
         instance: &mut RenderInstance,
     ) {
@@ -196,7 +171,7 @@ impl<'window> Renderer<'window> {
 
         let pipeline = self.pipeline_manager.acquire_pipeline(
             &self.device,
-            self.surface_config.format,
+            texture_format,
             &instance.material,
             &Conveyor::collect_bind_group_layouts(vec![
                 &self.shared_conveyor.bundles,
@@ -251,13 +226,6 @@ impl<'window> Renderer<'window> {
                 render_pass.draw_indexed(0..(indices.data.len() as u32), 0, 0..1);
             }
         }
-    }
-
-    pub fn resize(&mut self, width: u32, height: u32) {
-        self.surface_config.width = width;
-        self.surface_config.height = height;
-
-        self.surface.configure(&self.device, &self.surface_config);
     }
 }
 

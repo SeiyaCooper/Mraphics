@@ -1,5 +1,5 @@
 use mraphics_core::{
-    BasicMaterial, GeometryUpdater, GeometryView, Material, MaterialView, Mesh, MeshLike,
+    BasicMaterial, Geometry, GeometryUpdater, GeometryView, Material, MaterialView, Mesh, MeshLike,
     RenderInstance, Renderable, Sphere,
 };
 #[cfg(feature = "wasm")]
@@ -47,11 +47,22 @@ impl Default for Point3D {
 
 impl Renderable for Point3D {
     fn build_instance(&self) -> mraphics_core::RenderInstance {
-        RenderInstance::new(self.identifier, &self.material)
+        let mut instance = RenderInstance::new(self.identifier, &self.material);
+
+        self.geometry.init_view(&mut instance.geometry);
+
+        self.geometry.update_view(&mut instance.geometry);
+        self.material.update_view(&mut instance.material);
+
+        instance
     }
 
     fn identifier(&self) -> usize {
         self.identifier
+    }
+
+    fn init(&mut self) {
+        self.geometry.init();
     }
 }
 

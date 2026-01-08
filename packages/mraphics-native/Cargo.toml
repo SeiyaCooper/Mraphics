@@ -11,5 +11,5 @@ repository.workspace = true
 [dependencies]
 wgpu = "27.0.1"
 winit = "0.30.5"
-pollster = "0.3"
+pollster = { workspace = true }
 mraphics-core = { workspace = true }
