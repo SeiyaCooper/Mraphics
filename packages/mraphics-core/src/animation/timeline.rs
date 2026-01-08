@@ -19,10 +19,7 @@ pub trait Timeline<'res> {
 
     fn actions(&self) -> &Vec<Action<'res>>;
     fn actions_mut(&mut self) -> &mut Vec<Action<'res>>;
-    fn infinite_actions(&self) -> &Vec<Action<'res>>;
-    fn infinite_actions_mut(&mut self) -> &mut Vec<Action<'res>>;
     fn add_action(&mut self, action: Action<'res>);
-    fn add_infinite_action(&mut self, action: Action<'res>);
 
     fn process(&mut self) {
         let current_time = self.current_time();
@@ -30,10 +27,6 @@ pub trait Timeline<'res> {
             let elapsed = current_time - action.start_time;
             let progress = elapsed / action.duration;
             action.execute(progress, elapsed);
-        }
-
-        for action in self.infinite_actions_mut() {
-            action.execute(0.0, current_time);
         }
     }
 }
@@ -45,7 +38,6 @@ pub struct LogicalTimeline<'res> {
     current_frame: i32,
 
     actions: Vec<Action<'res>>,
-    infinite_actions: Vec<Action<'res>>,
 }
 
 impl<'res> LogicalTimeline<'res> {
@@ -55,7 +47,6 @@ impl<'res> LogicalTimeline<'res> {
             logical_fps: 60.0,
             current_frame: 0,
             actions: Vec::new(),
-            infinite_actions: Vec::new(),
         }
     }
 }
@@ -96,20 +87,8 @@ impl<'res> Timeline<'res> for LogicalTimeline<'res> {
         &mut self.actions
     }
 
-    fn infinite_actions(&self) -> &Vec<Action<'res>> {
-        &self.infinite_actions
-    }
-
-    fn infinite_actions_mut(&mut self) -> &mut Vec<Action<'res>> {
-        &mut self.infinite_actions
-    }
-
     fn add_action(&mut self, action: Action<'res>) {
         self.actions.push(action);
-    }
-
-    fn add_infinite_action(&mut self, action: Action<'res>) {
-        self.infinite_actions.push(action);
     }
 }
 
@@ -121,7 +100,6 @@ pub struct PhysicalTimeline<'res> {
     time_at_pause: f32,
 
     actions: Vec<Action<'res>>,
-    infinite_actions: Vec<Action<'res>>,
 }
 
 impl<'res> PhysicalTimeline<'res> {
@@ -132,7 +110,6 @@ impl<'res> PhysicalTimeline<'res> {
             actions: Vec::new(),
             start_instant: Instant::now(),
             time_at_pause: 0.0,
-            infinite_actions: Vec::new(),
         }
     }
 }
@@ -182,19 +159,7 @@ impl<'res> Timeline<'res> for PhysicalTimeline<'res> {
         &mut self.actions
     }
 
-    fn infinite_actions(&self) -> &Vec<Action<'res>> {
-        &self.infinite_actions
-    }
-
-    fn infinite_actions_mut(&mut self) -> &mut Vec<Action<'res>> {
-        &mut self.infinite_actions
-    }
-
     fn add_action(&mut self, action: Action<'res>) {
         self.actions.push(action);
-    }
-
-    fn add_infinite_action(&mut self, action: Action<'res>) {
-        self.infinite_actions.push(action);
     }
 }
