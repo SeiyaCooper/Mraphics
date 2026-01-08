@@ -7,8 +7,8 @@ pub struct Action<'res> {
     pub on_execute: Box<dyn FnMut() + 'res>,
     pub on_update: Box<dyn FnMut(f32, f32) + 'res>,
 
-    started: bool,
-    stopped: bool,
+    pub started: bool,
+    pub stopped: bool,
 }
 
 impl<'res> Action<'res> {
@@ -53,9 +53,5 @@ impl<'res> Action<'res> {
         }
 
         (self.on_update)(progress, elapsed_time);
-    }
-
-    pub fn is_stopped(&self) -> bool {
-        self.stopped
     }
 }

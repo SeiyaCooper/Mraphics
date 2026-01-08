@@ -20,9 +20,9 @@ pub struct Canvas<'res, T: Timeline<'res>, C: Camera> {
 
     pub size: (u32, u32),
 
-    renderer: Option<Renderer>,
+    pub(crate) renderer: Option<Renderer>,
 
-    offscreen_texture: Option<Texture>,
+    pub(crate) offscreen_texture: Option<Texture>,
 
     pub camera: C,
 
@@ -136,15 +136,7 @@ impl<'res, T: Timeline<'res>, C: Camera> Canvas<'res, T, C> {
         self.timeline.seek(time);
         self.timeline.process();
 
-        self.prepare_offscreen_rendering();
-
-        self.renderer.as_mut().unwrap().render(
-            self.offscreen_texture.as_mut().unwrap(),
-            OFFSCREEN_TEXTURE_FORMAT,
-            &mut self.scene.borrow_mut().instances,
-            &self.camera,
-            &self.clear_color,
-        );
+        self.render_offscreen();
 
         let raw_image = self
             .renderer
@@ -156,6 +148,17 @@ impl<'res, T: Timeline<'res>, C: Camera> Canvas<'res, T, C> {
             .unwrap()
             .save(path)
             .unwrap();
+    }
+
+    pub fn render_offscreen(&mut self) {
+        self.prepare_offscreen_rendering();
+        self.renderer.as_mut().unwrap().render(
+            self.offscreen_texture.as_mut().unwrap(),
+            OFFSCREEN_TEXTURE_FORMAT,
+            &mut self.scene.borrow_mut().instances,
+            &self.camera,
+            &self.clear_color,
+        );
     }
 
     fn prepare_offscreen_rendering(&mut self) {

@@ -1,6 +1,5 @@
-use std::time::Instant;
-
 use crate::animation::Action;
+use std::time::Instant;
 
 #[derive(Debug)]
 pub enum TimelineState {
@@ -21,6 +20,16 @@ pub trait Timeline<'res> {
     fn actions(&self) -> &Vec<Action<'res>>;
     fn actions_mut(&mut self) -> &mut Vec<Action<'res>>;
     fn add_action(&mut self, action: Action<'res>);
+
+    fn all_stopped(&self) -> bool {
+        for action in self.actions() {
+            if !action.stopped {
+                return false;
+            }
+        }
+
+        true
+    }
 
     fn process(&mut self) {
         let current_time = self.current_time();
