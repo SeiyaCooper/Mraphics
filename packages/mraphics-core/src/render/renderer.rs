@@ -5,8 +5,7 @@ use crate::{
     Camera, Color, Conveyor, ConveyorManager, GadgetData, GadgetDescriptor, GeometryIndices,
     PipelineManager, RenderInstance,
 };
-use wgpu::util::DeviceExt;
-use wgpu::{SurfaceTexture, TextureFormat};
+use wgpu::{Texture, TextureFormat, util::DeviceExt};
 
 pub struct Renderer {
     pub device: wgpu::Device,
@@ -54,15 +53,13 @@ impl Renderer {
 
     pub fn render<C: Camera>(
         &mut self,
-        texture: &SurfaceTexture,
+        texture: &Texture,
         texture_format: TextureFormat,
         instances: &mut [RenderInstance],
         camera: &C,
         clear_color: &Color<f64>,
     ) {
-        let view = texture
-            .texture
-            .create_view(&wgpu::TextureViewDescriptor::default());
+        let view = texture.create_view(&wgpu::TextureViewDescriptor::default());
 
         let mut encoder = self
             .device

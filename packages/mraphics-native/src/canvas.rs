@@ -207,7 +207,7 @@ impl<'res, T: Timeline<'res>> winit::application::ApplicationHandler for Canvas<
                 };
 
                 self.renderer.as_mut().unwrap().render(
-                    &texture,
+                    &texture.texture,
                     self.surface_config.as_ref().unwrap().format,
                     &mut self.scene.borrow_mut().instances,
                     &self.camera,
