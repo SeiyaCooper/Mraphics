@@ -5,7 +5,7 @@ use mraphics_core::{
 };
 use std::{cell::RefCell, marker::PhantomData, rc::Rc, sync::Arc, time::Duration};
 use wgpu::{Surface, SurfaceConfiguration, Texture, TextureFormat};
-use winit::{event::WindowEvent, event_loop::EventLoop, window::Window};
+use winit::{dpi::LogicalSize, event::WindowEvent, event_loop::EventLoop, window::Window};
 
 struct WindowContext {
     pub window: Arc<Window>,
@@ -46,11 +46,12 @@ pub struct Canvas<'res, T: Timeline<'res>, C: Camera> {
 
 impl<'res, T: Timeline<'res>, C: Camera> Canvas<'res, T, C> {
     pub fn new(timeline: T, mut camera: C) -> Self {
-        camera.set_aspect(1920.0 / 1080.0);
+        let (width, height) = (960, 540);
+        camera.set_aspect(width as f32 / height as f32);
         Self {
             window_ctx: None,
 
-            size: (1920, 1080),
+            size: (width, height),
 
             renderer: None,
 
@@ -231,7 +232,11 @@ impl<'res, T: Timeline<'res>, C: Camera> winit::application::ApplicationHandler
     fn resumed(&mut self, event_loop: &winit::event_loop::ActiveEventLoop) {
         let window = Arc::new(
             event_loop
-                .create_window(Window::default_attributes().with_title("mraphics window"))
+                .create_window(
+                    Window::default_attributes()
+                        .with_inner_size(LogicalSize::new(self.size.0, self.size.1))
+                        .with_title("Mraphics Preview"),
+                )
                 .unwrap(),
         );
 

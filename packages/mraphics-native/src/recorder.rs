@@ -22,6 +22,15 @@ impl<'canvas> Recorder<'canvas> {
         }
     }
 
+    pub fn with_fps(mut self, fps: f32) -> Self {
+        self.timeline.logical_fps = fps;
+        self
+    }
+
+    pub fn set_fps(&mut self, fps: f32) {
+        self.timeline.logical_fps = fps;
+    }
+
     pub fn record<'res, T: Timeline<'res>, C: Camera>(
         &mut self,
         canvas: &'canvas mut Canvas<'res, T, C>,
@@ -45,7 +54,7 @@ impl<'canvas> Recorder<'canvas> {
             &self.output_path,
         ]);
 
-        let mut process = command.spawn().expect("Failed when calling ffmpeg.");
+        let mut process = command.spawn().expect("Failed to invoke FFmpeg");
 
         let playhead = Rc::new(Cell::new(0.0));
         let playhead_clone = playhead.clone();
