@@ -53,7 +53,10 @@ impl Renderer {
 
     pub fn read_texture_rgbau8(&self, texture: &Texture, size: (u32, u32)) -> Vec<u8> {
         let (width, height) = size;
-        let buffer_size = (width * height * 4) as wgpu::BufferAddress;
+        let unpadded_bytes_per_row = width * 4; // rgba
+        let bytes_per_row =
+            wgpu::util::align_to(unpadded_bytes_per_row, wgpu::COPY_BYTES_PER_ROW_ALIGNMENT);
+        let buffer_size = (bytes_per_row * height) as wgpu::BufferAddress;
         let buffer = self.device.create_buffer(&wgpu::BufferDescriptor {
             label: Some("Mraphics Texture Mapping Buffer"),
             size: buffer_size,
@@ -76,7 +79,7 @@ impl Renderer {
                 buffer: &buffer,
                 layout: wgpu::TexelCopyBufferLayout {
                     offset: 0,
-                    bytes_per_row: Some(width * 4),
+                    bytes_per_row: Some(bytes_per_row),
                     rows_per_image: Some(height),
                 },
             },
@@ -101,7 +104,17 @@ impl Renderer {
 
         receiver.recv().unwrap().unwrap();
 
-        let data = buffer.get_mapped_range(..).to_vec();
+        let raw_data = buffer.get_mapped_range(..);
+        let mut data = Vec::with_capacity((unpadded_bytes_per_row * height) as usize);
+
+        for row in 0..height {
+            let row_start = (row * bytes_per_row) as usize;
+            let row_end = row_start + unpadded_bytes_per_row as usize;
+
+            data.extend_from_slice(&raw_data[row_start..row_end]);
+        }
+
+        drop(raw_data);
 
         buffer.unmap();
 
