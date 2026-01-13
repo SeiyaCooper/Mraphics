@@ -9,8 +9,12 @@ pub trait Animation<'res> {
     ) -> Action<'res>;
 }
 
-pub trait AsIntermediate {
+/// A trait that specifies a struct can both:
+/// - Generate an intermediate representation
+/// - Update self from an intermediate representation
+pub trait Representable {
     type Intermediate;
 
     fn as_intermediate(&self) -> Self::Intermediate;
+    fn update_from_intermediate(&mut self, repr: &Self::Intermediate);
 }

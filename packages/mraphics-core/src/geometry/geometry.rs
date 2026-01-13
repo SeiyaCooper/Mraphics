@@ -1,4 +1,4 @@
-use crate::{GadgetData, GadgetIndex, Interpolatable, constants};
+use crate::{GadgetData, GadgetIndex, InstanceUpdater, Interpolatable, constants};
 use nalgebra::Matrix4;
 use std::collections::HashMap;
 
@@ -189,29 +189,20 @@ impl GeometryView {
 ///
 /// Types implementing this trait can:
 /// - Create a complete geometry view from scratch
-/// - Modify an existing geometry view (inherited from [`GeometryUpdater`])
+/// - Modify an existing geometry view
 /// - Are cloneable to support duplication of geometric data.
 ///
 /// # Required Trait Bounds
-/// - [`GeometryUpdater`]: For updating geometry views
 /// - [`Clone`]: For copying geometric data
-pub trait Geometry: GeometryUpdater + Clone {
+pub trait Geometry: Clone {
     /// Initializes a new [`GeometryView`].
     fn init_view(&self, view: &mut GeometryView);
 
-    /// Initializes self before initializing geometry view, optional.
-    fn init(&mut self) {}
-}
-
-/// A trait for objects that can update an existing [`GeometryView`].
-///
-/// This is useful for:
-/// - Geometric objects that need incremental updates
-/// - Intermediate representations used in animations
-/// - Any entity that modifies geometry data without recreating it
-pub trait GeometryUpdater {
     /// Updates an existing [`GeometryView`] with this object's data.
     fn update_view(&self, view: &mut GeometryView);
+
+    /// Initializes self before initializing geometry view, optional.
+    fn init(&mut self) {}
 }
 
 /// A collection of vertices in homogeneous coordinates (x, y, z, w).
@@ -234,22 +225,12 @@ impl Vertices {
             data: self.data.iter().map(transform).collect(),
         }
     }
-}
 
-impl Interpolatable for Vertices {
-    fn interpolate(&self, to: &Self, p: f32) -> Self {
-        Self {
-            data: self.data.interpolate(&to.data, p),
-        }
-    }
-}
-
-/// Updates a geometry view with [`Vertices`].
-///
-/// # Notes
-/// This implementation does not modify existing indices
-impl GeometryUpdater for Vertices {
-    fn update_view(&self, view: &mut GeometryView) {
+    /// Updates a instance with [`Vertices`].
+    ///
+    /// # Notes
+    /// This implementation does not modify existing indices
+    pub fn update_geometry_view(&self, view: &mut GeometryView) {
         let mut vertices = Vec::new();
 
         for vertex in &self.data {
@@ -264,5 +245,23 @@ impl GeometryUpdater for Vertices {
             Vec::from(bytemuck::cast_slice::<f32, u8>(&vertices)),
         )
         .unwrap();
+    }
+}
+
+impl Interpolatable for Vertices {
+    fn interpolate(&self, to: &Self, p: f32) -> Self {
+        Self {
+            data: self.data.interpolate(&to.data, p),
+        }
+    }
+}
+
+/// Updates a instance with [`Vertices`].
+///
+/// # Notes
+/// This implementation only modifies geometry view and it does not modify existing indices
+impl InstanceUpdater for Vertices {
+    fn update_instance(&self, instance: &mut super::RenderInstance) {
+        self.update_geometry_view(&mut instance.geometry);
     }
 }

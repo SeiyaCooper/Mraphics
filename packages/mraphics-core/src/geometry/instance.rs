@@ -111,3 +111,7 @@ pub trait Renderable {
     /// Initializes self before building instance, optional.
     fn init(&mut self) {}
 }
+
+pub trait InstanceUpdater {
+    fn update_instance(&self, instance: &mut RenderInstance);
+}

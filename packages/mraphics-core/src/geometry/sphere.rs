@@ -1,6 +1,6 @@
 use crate::{
-    AsIntermediate, CustomIndices, Geometry, GeometryIndices, GeometryUpdater, Material, Mesh,
-    Transformable, Vertices,
+    CustomIndices, Geometry, GeometryIndices, Material, Mesh, Representable, Transformable,
+    Vertices,
 };
 use std::f32::consts::PI;
 
@@ -42,17 +42,6 @@ impl Default for Sphere {
     }
 }
 
-impl GeometryUpdater for Sphere {
-    fn update_view(&self, view: &mut super::GeometryView) {
-        self.vertices.update_view(view);
-
-        view.get_attribute_mut(crate::constants::POSITION_ATTR_LABEL)
-            .unwrap()
-            .needs_update_buffer = true;
-        view.indices = GeometryIndices::CustomU16(CustomIndices::new((&self.indices).to_owned()));
-    }
-}
-
 impl Geometry for Sphere {
     fn init_view(&self, view: &mut super::GeometryView) {
         view.add_attribute(
@@ -60,6 +49,15 @@ impl Geometry for Sphere {
             crate::constants::POSITION_ATTR_INDEX,
             Vec::<u8>::new(),
         );
+    }
+
+    fn update_view(&self, view: &mut super::GeometryView) {
+        self.vertices.update_geometry_view(view);
+
+        view.get_attribute_mut(crate::constants::POSITION_ATTR_LABEL)
+            .unwrap()
+            .needs_update_buffer = true;
+        view.indices = GeometryIndices::CustomU16(CustomIndices::new((&self.indices).to_owned()));
     }
 
     fn init(&mut self) {
@@ -117,10 +115,15 @@ impl Geometry for Sphere {
     }
 }
 
-impl<M: Material> AsIntermediate for Mesh<Sphere, M> {
+impl<M: Material> Representable for Mesh<Sphere, M> {
     type Intermediate = Vertices;
+
     fn as_intermediate(&self) -> Self::Intermediate {
         self.geometry.vertices.clone()
+    }
+
+    fn update_from_intermediate(&mut self, repr: &Self::Intermediate) {
+        self.geometry.vertices = repr.clone();
     }
 }
 

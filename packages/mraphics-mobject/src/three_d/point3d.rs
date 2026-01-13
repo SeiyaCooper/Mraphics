@@ -1,13 +1,22 @@
 use mraphics_core::{
-    BasicMaterial, Geometry, GeometryUpdater, GeometryView, Material, MaterialView, Mesh, MeshLike,
-    RenderInstance, Renderable, Sphere,
+    BasicMaterial, Geometry, GeometryView, InstanceUpdater, Interpolatable, Material, MaterialView,
+    Mesh, MeshLike, RenderInstance, Renderable, Representable, Sphere, Transformable,
 };
+use nalgebra::Vector3;
 #[cfg(feature = "wasm")]
 use wasm_bindgen::prelude::wasm_bindgen;
+
+#[derive(Clone)]
+pub struct Point3DCenter {
+    pub position: [f32; 3],
+}
 
 #[cfg_attr(feature = "wasm", wasm_bindgen)]
 pub struct Point3D {
     pub radius: f32,
+
+    #[cfg_attr(feature = "wasm", wasm_bindgen(skip))]
+    pub center: Point3DCenter,
 
     #[cfg_attr(feature = "wasm", wasm_bindgen(skip))]
     pub identifier: usize,
@@ -21,6 +30,11 @@ pub struct Point3D {
 
 #[cfg_attr(feature = "wasm", wasm_bindgen)]
 impl Point3D {
+    #[cfg_attr(feature = "wasm", wasm_bindgen(constructor))]
+    pub fn new() -> Self {
+        Self::default()
+    }
+
     #[cfg_attr(feature = "wasm", wasm_bindgen(js_name = "withRadius"))]
     pub fn with_radius(mut self, radius: f32) -> Self {
         self.radius = radius;
@@ -29,10 +43,20 @@ impl Point3D {
     }
 }
 
+impl Point3D {
+    pub fn with_center(mut self, center: [f32; 3]) -> Self {
+        self.center = Point3DCenter { position: center };
+        self
+    }
+}
+
 impl Default for Point3D {
     fn default() -> Self {
         Self {
             radius: 0.06,
+            center: Point3DCenter {
+                position: [0.0, 0.0, 0.0],
+            },
             identifier: Mesh::<Sphere, BasicMaterial>::acquire_id(),
             geometry: Sphere {
                 radius: 0.06,
@@ -48,6 +72,8 @@ impl Default for Point3D {
 impl Renderable for Point3D {
     fn build_instance(&self) -> mraphics_core::RenderInstance {
         let mut instance = RenderInstance::new(self.identifier, &self.material);
+
+        instance.move_to(&Vector3::from_column_slice(&self.center.position));
 
         self.geometry.init_view(&mut instance.geometry);
 
@@ -73,5 +99,42 @@ impl MeshLike for Point3D {
 
     fn update_material_view(&self, view: &mut MaterialView) {
         self.material.update_view(view);
+    }
+}
+
+impl Interpolatable for Point3DCenter {
+    fn interpolate(&self, to: &Self, p: f32) -> Self {
+        Self {
+            position: self.position.interpolate(&to.position, p),
+        }
+    }
+}
+
+impl InstanceUpdater for Point3DCenter {
+    fn update_instance(&self, instance: &mut RenderInstance) {
+        instance.move_to(&Vector3::from_column_slice(&self.position));
+    }
+}
+
+impl Representable for Point3D {
+    type Intermediate = Point3DCenter;
+
+    fn as_intermediate(&self) -> Self::Intermediate {
+        self.center.clone()
+    }
+
+    fn update_from_intermediate(&mut self, repr: &Self::Intermediate) {
+        self.center = repr.clone();
+    }
+}
+
+impl Transformable for Point3D {
+    fn apply_transform<Trans: Fn(&[f32; 3]) -> [f32; 3]>(
+        &self,
+        transform: Trans,
+    ) -> Self::Intermediate {
+        Point3DCenter {
+            position: transform(&self.center.position),
+        }
     }
 }

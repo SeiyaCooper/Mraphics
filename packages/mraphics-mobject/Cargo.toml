@@ -14,3 +14,4 @@ wasm = ["dep:wasm-bindgen"]
 [dependencies]
 wasm-bindgen = { workspace = true, optional = true }
 mraphics-core = { workspace = true }
+nalgebra = { workspace = true }

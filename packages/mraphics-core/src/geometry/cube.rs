@@ -1,7 +1,4 @@
-use crate::{
-    AsIntermediate, Geometry, GeometryIndices, GeometryUpdater, Material, Mesh, Transformable,
-    Vertices,
-};
+use crate::{Geometry, GeometryIndices, Material, Mesh, Representable, Transformable, Vertices};
 use nalgebra::Vector3;
 
 #[derive(Clone)]
@@ -31,13 +28,6 @@ impl Default for Cube {
     }
 }
 
-impl GeometryUpdater for Cube {
-    fn update_view(&self, view: &mut super::GeometryView) {
-        self.vertices.update_view(view);
-        view.indices = GeometryIndices::Sequential(self.vertices.data.len() as u32);
-    }
-}
-
 impl Geometry for Cube {
     fn init_view(&self, view: &mut super::GeometryView) {
         view.add_attribute(
@@ -45,6 +35,11 @@ impl Geometry for Cube {
             crate::constants::POSITION_ATTR_INDEX,
             bytemuck::cast_slice::<f32, u8>(&self.vertices.data.concat()).to_vec(),
         );
+    }
+
+    fn update_view(&self, view: &mut super::GeometryView) {
+        self.vertices.update_geometry_view(view);
+        view.indices = GeometryIndices::Sequential(self.vertices.data.len() as u32);
     }
 
     fn init(&mut self) {
@@ -113,10 +108,15 @@ impl Geometry for Cube {
     }
 }
 
-impl<M: Material> AsIntermediate for Mesh<Cube, M> {
+impl<M: Material> Representable for Mesh<Cube, M> {
     type Intermediate = Vertices;
+
     fn as_intermediate(&self) -> Self::Intermediate {
         self.geometry.vertices.clone()
+    }
+
+    fn update_from_intermediate(&mut self, repr: &Self::Intermediate) {
+        self.geometry.vertices = repr.clone();
     }
 }
 
