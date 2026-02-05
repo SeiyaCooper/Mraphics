@@ -3,9 +3,7 @@ use mraphics_core::{
     Animation, Camera, Color, MeshHandle, MeshLike, MeshPool, RenderInstance, Renderer, Scene,
     Timeline,
 };
-use std::{
-    cell::RefCell, collections::HashMap, marker::PhantomData, rc::Rc, sync::Arc, time::Duration,
-};
+use std::{cell::RefCell, marker::PhantomData, rc::Rc, sync::Arc, time::Duration};
 use wgpu::{Surface, SurfaceConfiguration, Texture, TextureFormat};
 use winit::{dpi::LogicalSize, event::WindowEvent, event_loop::EventLoop, window::Window};
 
