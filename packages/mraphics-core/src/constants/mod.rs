@@ -1,8 +1,17 @@
 use crate::render::GadgetIndex;
 
+// Built-in colors
 mod colors;
 pub use colors::*;
 
+// Common resolutions
+pub const RESOLUTION_4K: (u32, u32) = (3840, 2160);
+pub const RESOLUTION_1080P: (u32, u32) = (1920, 1080);
+pub const RESOLUTION_720P: (u32, u32) = (1280, 720);
+pub const RESOLUTION_480P: (u32, u32) = (854, 480);
+pub const RESOLUTION_360P: (u32, u32) = (640, 360);
+
+// Built-in gadgets
 pub const VIEW_MAT_LABEL: &'static str = "mraphics-view-mat";
 pub const VIEW_MAT_INDEX: GadgetIndex = GadgetIndex {
     group_index: 0,
