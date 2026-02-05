@@ -1,4 +1,4 @@
-use crate::{RenderInstance, Renderable};
+use crate::{MeshLike, RenderInstance};
 use std::collections::HashMap;
 
 pub struct Scene {
@@ -14,12 +14,12 @@ impl Scene {
         }
     }
 
-    pub fn add_renderable<R: Renderable>(&mut self, renderable: &mut R) {
-        renderable.init();
+    pub fn add_mesh<M: MeshLike>(&mut self, mesh: &mut M) {
+        mesh.init();
 
-        self.instances.push(renderable.build_instance());
+        self.instances.push(mesh.build_instance());
         self.instance_map
-            .insert(renderable.identifier(), self.instances.len() - 1);
+            .insert(mesh.identifier(), self.instances.len() - 1);
     }
 
     pub fn remove_renderable(&mut self, identifier: &usize) -> Option<RenderInstance> {

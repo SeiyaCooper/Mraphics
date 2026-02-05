@@ -1,6 +1,6 @@
 use mraphics_core::{
-    BasicMaterial, Geometry, GeometryView, InstanceUpdater, Interpolatable, Material, MaterialView,
-    Mesh, MeshLike, RenderInstance, Renderable, Representable, Sphere, Transformable,
+    BasicMaterial, Geometry, InstanceUpdater, Interpolatable, Material, Mesh, MeshLike,
+    RenderInstance, Representable, Sphere, Transformable,
 };
 use nalgebra::Vector3;
 #[cfg(feature = "wasm")]
@@ -69,7 +69,7 @@ impl Default for Point3D {
     }
 }
 
-impl Renderable for Point3D {
+impl MeshLike for Point3D {
     fn build_instance(&self) -> mraphics_core::RenderInstance {
         let mut instance = RenderInstance::new(self.identifier, &self.material);
 
@@ -89,16 +89,6 @@ impl Renderable for Point3D {
 
     fn init(&mut self) {
         self.geometry.init();
-    }
-}
-
-impl MeshLike for Point3D {
-    fn update_geometry_view(&self, view: &mut GeometryView) {
-        self.geometry.update_view(view);
-    }
-
-    fn update_material_view(&self, view: &mut MaterialView) {
-        self.material.update_view(view);
     }
 }
 

@@ -1,11 +1,17 @@
-use crate::{Geometry, GeometryView, Material, MaterialView, RenderInstance, Renderable};
+use crate::{Geometry, Material, RenderInstance};
 use std::{marker::PhantomData, sync::atomic::AtomicUsize};
 
 static GLOBAL_MESH_ID: AtomicUsize = AtomicUsize::new(0);
 
-pub trait MeshLike: Renderable {
-    fn update_geometry_view(&self, view: &mut GeometryView);
-    fn update_material_view(&self, view: &mut MaterialView);
+pub trait MeshLike {
+    /// Returns the unique identifier of this mesh.
+    fn identifier(&self) -> usize;
+
+    /// Build a render instance using this mesh's data.
+    fn build_instance(&self) -> RenderInstance;
+
+    /// Initializes self before building render instance, optional.
+    fn init(&mut self) {}
 }
 
 pub struct MeshHandle<M: MeshLike> {
@@ -42,7 +48,7 @@ impl<G: Geometry, M: Material> Mesh<G, M> {
     }
 }
 
-impl<G: Geometry, M: Material> Renderable for Mesh<G, M> {
+impl<G: Geometry, M: Material> MeshLike for Mesh<G, M> {
     fn identifier(&self) -> usize {
         self.identifier
     }
@@ -60,15 +66,5 @@ impl<G: Geometry, M: Material> Renderable for Mesh<G, M> {
 
     fn init(&mut self) {
         self.geometry.init();
-    }
-}
-
-impl<G: Geometry, M: Material> MeshLike for Mesh<G, M> {
-    fn update_geometry_view(&self, view: &mut GeometryView) {
-        self.geometry.update_view(view);
-    }
-
-    fn update_material_view(&self, view: &mut MaterialView) {
-        self.material.update_view(view);
     }
 }

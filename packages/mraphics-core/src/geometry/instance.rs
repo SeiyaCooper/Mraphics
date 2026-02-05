@@ -101,17 +101,6 @@ impl RenderInstance {
     }
 }
 
-pub trait Renderable {
-    /// Returns the unique identifier of this renderable object.
-    fn identifier(&self) -> usize;
-
-    /// Build an instance using this object's data.
-    fn build_instance(&self) -> RenderInstance;
-
-    /// Initializes self before building instance, optional.
-    fn init(&mut self) {}
-}
-
 pub trait InstanceUpdater {
     fn update_instance(&self, instance: &mut RenderInstance);
 }

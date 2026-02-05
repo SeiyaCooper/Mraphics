@@ -51,6 +51,14 @@ impl Renderer {
         }
     }
 
+    /// Reads RGBA pixel data from a GPU texture into a CPU-accessible byte vector.
+    ///
+    /// # Arguments
+    /// * `texture` - The texture to read from
+    /// * `size` - The (width, height) dimensions of the texture
+    ///
+    /// # Returns
+    /// A Vec<u8> containing RGBA pixel data in row-major order
     pub fn read_texture_rgbau8(&self, texture: &Texture, size: (u32, u32)) -> Vec<u8> {
         let (width, height) = size;
         let unpadded_bytes_per_row = width * 4; // rgba
@@ -121,6 +129,15 @@ impl Renderer {
         data
     }
 
+    /// Renders a collection of instances to a texture using the specified camera and clear color.
+    /// Updates shared camera matrices, processes each render instance, and submits commands to the GPU.
+    ///
+    /// # Arguments
+    /// * `texture` - The target texture to render to
+    /// * `texture_format` - The format of the target texture，used to build a render pipeline
+    /// * `instances` - Mutable slice of render instances to draw
+    /// * `camera` - Camera providing view and projection matrices
+    /// * `clear_color` - Background color to clear the texture with
     pub fn render<C: Camera>(
         &mut self,
         texture: &Texture,
@@ -177,6 +194,13 @@ impl Renderer {
         self.queue.submit(std::iter::once(encoder.finish()));
     }
 
+    /// Renders a single instance by setting up its geometry and material data,
+    /// updating necessary buffers, and issuing draw commands.
+    ///
+    /// # Arguments
+    /// * `texture_format` - The format of the current render target
+    /// * `render_pass` - The active render pass to record commands into
+    /// * `instance` - The render instance to draw
     fn render_instance(
         &mut self,
         texture_format: TextureFormat,
