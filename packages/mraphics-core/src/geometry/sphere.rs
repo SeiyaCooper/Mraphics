@@ -60,7 +60,7 @@ impl Geometry for Sphere {
         view.indices = GeometryIndices::CustomU16(CustomIndices::new((&self.indices).to_owned()));
     }
 
-    fn init(&mut self) {
+    fn update(&mut self) {
         self.vertices = Vertices::new();
         self.indices = Vec::new();
 

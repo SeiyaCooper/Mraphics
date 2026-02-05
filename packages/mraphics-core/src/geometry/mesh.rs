@@ -1,19 +1,20 @@
-use crate::{Geometry, Material, RenderInstance};
+use crate::{Geometry, InstanceUpdater, Material, RenderInstance};
 use std::{marker::PhantomData, sync::atomic::AtomicUsize};
 
 static GLOBAL_MESH_ID: AtomicUsize = AtomicUsize::new(0);
 
-pub trait MeshLike {
+pub trait MeshLike: InstanceUpdater {
     /// Returns the unique identifier of this mesh.
     fn identifier(&self) -> usize;
 
     /// Build a render instance using this mesh's data.
     fn build_instance(&self) -> RenderInstance;
 
-    /// Initializes self before building render instance, optional.
-    fn init(&mut self) {}
+    /// Updates self before updating the render instance, optional.
+    fn update(&mut self) {}
 }
 
+#[derive(Clone)]
 pub struct MeshHandle<M: MeshLike> {
     pub id: usize,
     _marker: PhantomData<M>,
@@ -48,6 +49,13 @@ impl<G: Geometry, M: Material> Mesh<G, M> {
     }
 }
 
+impl<G: Geometry, M: Material> InstanceUpdater for Mesh<G, M> {
+    fn update_instance(&self, instance: &mut RenderInstance) {
+        self.geometry.update_view(&mut instance.geometry);
+        self.material.update_view(&mut instance.material);
+    }
+}
+
 impl<G: Geometry, M: Material> MeshLike for Mesh<G, M> {
     fn identifier(&self) -> usize {
         self.identifier
@@ -64,7 +72,7 @@ impl<G: Geometry, M: Material> MeshLike for Mesh<G, M> {
         instance
     }
 
-    fn init(&mut self) {
-        self.geometry.init();
+    fn update(&mut self) {
+        self.geometry.update();
     }
 }

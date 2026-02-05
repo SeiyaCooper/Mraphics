@@ -201,8 +201,8 @@ pub trait Geometry: Clone {
     /// Updates an existing [`GeometryView`] with this object's data.
     fn update_view(&self, view: &mut GeometryView);
 
-    /// Initializes self before initializing geometry view, optional.
-    fn init(&mut self) {}
+    /// Updates self before updating geometry view, optional.
+    fn update(&mut self) {}
 }
 
 /// A collection of vertices in homogeneous coordinates (x, y, z, w).

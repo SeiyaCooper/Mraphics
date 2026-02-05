@@ -42,7 +42,7 @@ impl Geometry for Cube {
         view.indices = GeometryIndices::Sequential(self.vertices.data.len() as u32);
     }
 
-    fn init(&mut self) {
+    fn update(&mut self) {
         let vertices = &mut self.vertices.data;
 
         fn to_homogeneous(point: &Vector3<f32>, w: f32) -> [f32; 4] {

@@ -15,7 +15,7 @@ impl Scene {
     }
 
     pub fn add_mesh<M: MeshLike>(&mut self, mesh: &mut M) {
-        mesh.init();
+        mesh.update();
 
         self.instances.push(mesh.build_instance());
         self.instance_map

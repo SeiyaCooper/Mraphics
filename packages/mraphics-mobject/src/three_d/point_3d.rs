@@ -69,6 +69,12 @@ impl Default for Point3D {
     }
 }
 
+impl InstanceUpdater for Point3D {
+    fn update_instance(&self, instance: &mut RenderInstance) {
+        instance.move_to(&Vector3::from_column_slice(&self.center.position));
+    }
+}
+
 impl MeshLike for Point3D {
     fn build_instance(&self) -> mraphics_core::RenderInstance {
         let mut instance = RenderInstance::new(self.identifier, &self.material);
@@ -85,10 +91,6 @@ impl MeshLike for Point3D {
 
     fn identifier(&self) -> usize {
         self.identifier
-    }
-
-    fn init(&mut self) {
-        self.geometry.init();
     }
 }
 

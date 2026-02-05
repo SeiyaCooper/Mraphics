@@ -3,7 +3,9 @@ use mraphics_core::{
     Animation, Camera, Color, MeshHandle, MeshLike, MeshPool, RenderInstance, Renderer, Scene,
     Timeline,
 };
-use std::{cell::RefCell, marker::PhantomData, rc::Rc, sync::Arc, time::Duration};
+use std::{
+    cell::RefCell, collections::HashMap, marker::PhantomData, rc::Rc, sync::Arc, time::Duration,
+};
 use wgpu::{Surface, SurfaceConfiguration, Texture, TextureFormat};
 use winit::{dpi::LogicalSize, event::WindowEvent, event_loop::EventLoop, window::Window};
 
@@ -73,6 +75,7 @@ impl<'res, T: Timeline<'res>, C: Camera> Canvas<'res, T, C> {
         }
     }
 
+    /// Queues a new animation and advances the playhead by its duration.
     pub fn queue_animation<Ani: Animation<'res>>(&mut self, animation: Ani, duration: &Duration) {
         let mut action = animation.into_action(self.mesh_pool.clone(), self.scene.clone());
         action.duration = duration.as_secs_f32();
@@ -83,6 +86,7 @@ impl<'res, T: Timeline<'res>, C: Camera> Canvas<'res, T, C> {
         self.timeline.add_action(action);
     }
 
+    /// Advanced the playhead manually.
     pub fn advance_playhead(&mut self, step: &Duration) {
         self.playhead += step.as_secs_f32();
     }
@@ -95,7 +99,9 @@ impl<'res, T: Timeline<'res>, C: Camera> Canvas<'res, T, C> {
             .acquire_instance_mut_unchecked(mesh.identifier())
             .sync_matrix_data();
 
-        self.mesh_pool.borrow_mut().add_mesh(mesh)
+        let mesh_handle = self.mesh_pool.borrow_mut().add_mesh(mesh);
+
+        mesh_handle
     }
 
     pub fn with_instance<F: FnMut(Option<&mut RenderInstance>), Mesh: MeshLike>(
@@ -116,6 +122,30 @@ impl<'res, T: Timeline<'res>, C: Camera> Canvas<'res, T, C> {
                 .borrow_mut()
                 .acquire_instance_mut_unchecked(mesh_handle.id),
         );
+    }
+
+    pub fn with_mesh<Mesh: MeshLike + 'static, F: FnMut(Option<&mut Mesh>)>(
+        &self,
+        mesh_handle: &MeshHandle<Mesh>,
+        mut closure: F,
+    ) {
+        closure(
+            self.mesh_pool
+                .borrow_mut()
+                .acquire_mesh_mut::<Mesh>(mesh_handle.id),
+        )
+    }
+
+    pub fn with_mesh_unchecked<Mesh: MeshLike + 'static, F: FnMut(&mut Mesh)>(
+        &self,
+        mesh_handle: &MeshHandle<Mesh>,
+        mut closure: F,
+    ) {
+        closure(
+            self.mesh_pool
+                .borrow_mut()
+                .acquire_mesh_mut_unchecked::<Mesh>(mesh_handle.id),
+        )
     }
 
     pub fn resize(&mut self, size: (u32, u32)) {

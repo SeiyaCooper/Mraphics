@@ -24,10 +24,18 @@ impl MeshPool {
         MeshHandle::<M>::new(id)
     }
 
+    pub fn acquire_mesh<M: MeshLike + 'static>(&self, id: usize) -> Option<&M> {
+        self.meshes[*self.mesh_map.get(&id).unwrap()].downcast_ref::<M>()
+    }
+
     pub fn acquire_mesh_unchecked<M: MeshLike + 'static>(&self, id: usize) -> &M {
         self.meshes[*self.mesh_map.get(&id).unwrap()]
             .downcast_ref::<M>()
             .unwrap()
+    }
+
+    pub fn acquire_mesh_mut<M: MeshLike + 'static>(&mut self, id: usize) -> Option<&mut M> {
+        self.meshes[*self.mesh_map.get(&id).unwrap()].downcast_mut::<M>()
     }
 
     pub fn acquire_mesh_mut_unchecked<M: MeshLike + 'static>(&mut self, id: usize) -> &mut M {

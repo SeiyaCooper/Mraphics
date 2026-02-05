@@ -58,6 +58,7 @@ impl Conveyor {
         }
     }
 
+    /// Updates or inserts a gadget and marks self as requiring an update
     pub fn upsert_gadget(&mut self, device: &wgpu::Device, desc: &GadgetDescriptor) {
         let buffer = device.create_buffer(&wgpu::BufferDescriptor {
             label: Some(desc.label),
