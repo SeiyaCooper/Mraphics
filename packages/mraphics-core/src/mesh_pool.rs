@@ -1,6 +1,5 @@
+use crate::{MeshHandle, MeshLike, RenderInstance};
 use std::{any::TypeId, collections::HashMap, mem, ptr};
-
-use crate::{MeshHandle, MeshLike};
 
 /// A type-erased container for storing any type that implements `MeshLike`.
 ///
@@ -15,6 +14,7 @@ pub struct MeshBox {
     drop_fn: unsafe fn(*mut u8),
 
     update_fn: unsafe fn(*mut u8),
+    update_instance_fn: unsafe fn(*mut u8, instance: &mut RenderInstance),
 }
 
 impl MeshBox {
@@ -41,6 +41,9 @@ impl MeshBox {
 
             update_fn: |ptr| unsafe {
                 (&mut *(ptr as *mut M)).update();
+            },
+            update_instance_fn: |ptr, instance| unsafe {
+                (&mut *(ptr as *mut M)).update_instance(instance);
             },
         }
     }
@@ -101,8 +104,15 @@ impl MeshBox {
     /// Triggers [`MeshLike::update`] for the stored mesh.
     pub fn update_mesh(&mut self) {
         // SAFETY: `self.update_fn` and `self.data` are initialized with the same type in [`MeshBox::new`],
-        // and the only way to build a [`MeshBox`] is by calling [`MeshBox::new`]
+        // and the only way to build a [`MeshBox`] is by using [`MeshBox::new`]
         unsafe { (self.update_fn)(self.data) }
+    }
+
+    /// Triggers [`InstanceUpdater::update_instance`] for the stored mesh.
+    pub fn update_instance(&mut self, instance: &mut RenderInstance) {
+        // SAFETY: `self.update_instance_fn` and `self.data` are initialized with the same type in [`MeshBox::new`],
+        // and the only way to build a [`MeshBox`] is by using [`MeshBox::new`]
+        unsafe { (self.update_instance_fn)(self.data, instance) }
     }
 }
 
@@ -134,9 +144,14 @@ impl MeshPool {
         MeshHandle::<M>::new(id)
     }
 
-    /// Triggers [`MeshLike::update`] for the mesh specified with id.
+    /// Triggers [`MeshLike::update`] for the mesh specified by id.
     pub fn update_mesh(&mut self, id: usize) {
         self.meshes[*self.mesh_map.get(&id).unwrap()].update_mesh();
+    }
+
+    /// Updates given [`RenderInstance`] using the mesh specified by id.
+    pub fn update_instance(&mut self, id: usize, instance: &mut RenderInstance) {
+        self.meshes[*self.mesh_map.get(&id).unwrap()].update_instance(instance);
     }
 
     pub fn acquire_mesh<M: MeshLike + 'static>(&self, id: usize) -> Option<&M> {

@@ -3,7 +3,9 @@ use mraphics_core::{
     Animation, Camera, Color, MeshHandle, MeshLike, MeshPool, RenderInstance, Renderer, Scene,
     Timeline,
 };
-use std::{cell::RefCell, marker::PhantomData, rc::Rc, sync::Arc, time::Duration};
+use std::{
+    cell::RefCell, collections::HashMap, marker::PhantomData, rc::Rc, sync::Arc, time::Duration,
+};
 use wgpu::{Surface, SurfaceConfiguration, Texture, TextureFormat};
 use winit::{dpi::LogicalSize, event::WindowEvent, event_loop::EventLoop, window::Window};
 
@@ -39,6 +41,12 @@ pub struct Canvas<'res, T: Timeline<'res>, C: Camera> {
     /// Wrapped in [`Rc`] to enable shared ownership across timeline actions.
     pub mesh_pool: Rc<RefCell<MeshPool>>,
 
+    /// Tracks which meshes need to be updated.
+    ///
+    /// The [`Canvas`] automatically manages these flags.
+    /// You can manually set a flag to `true` to force a mesh update, though this is rarely needed.
+    pub update_flags: HashMap<usize, bool>,
+
     pub clear_color: Color<f64>,
 
     _marker: PhantomData<&'res ()>,
@@ -66,6 +74,7 @@ impl<'res, T: Timeline<'res>, C: Camera> Canvas<'res, T, C> {
 
             scene: Rc::new(RefCell::new(Scene::new())),
             mesh_pool: Rc::new(RefCell::new(MeshPool::new())),
+            update_flags: HashMap::new(),
 
             clear_color: Color::from_hex_str(mraphics_core::constants::GRAY_E).unwrap(),
 
@@ -99,7 +108,32 @@ impl<'res, T: Timeline<'res>, C: Camera> Canvas<'res, T, C> {
 
         let mesh_handle = self.mesh_pool.borrow_mut().add_mesh(mesh);
 
+        self.update_flags.insert(mesh_handle.id, false);
+
         mesh_handle
+    }
+
+    /// Updates all meshes marked as needing update and clears their dirty flags.
+    ///
+    /// This method processes all meshes with `true` in [`Self::update_flags`],
+    /// performs necessary updates (triggers [`MeshLike::update`] and then [`InstanceUpdater::update_instance`])
+    /// and then resets their flags to `false`.
+    ///
+    /// This is automatically called by [`Canvas`] during rendering, but you can
+    /// manually invoke it to force immediate updates when needed.
+    pub fn update_meshes(&mut self) {
+        for (&id, needs_update) in &mut self.update_flags {
+            if !*needs_update {
+                continue;
+            }
+
+            self.mesh_pool.borrow_mut().update_mesh(id);
+            self.mesh_pool.borrow_mut().update_instance(
+                id,
+                self.scene.borrow_mut().acquire_instance_mut_unchecked(id),
+            );
+            *needs_update = false;
+        }
     }
 
     pub fn with_instance<F: FnMut(Option<&mut RenderInstance>), Mesh: MeshLike>(
