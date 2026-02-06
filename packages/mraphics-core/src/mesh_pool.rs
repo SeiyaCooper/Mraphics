@@ -13,6 +13,8 @@ pub struct MeshBox {
     size: usize,
     align: usize,
     drop_fn: unsafe fn(*mut u8),
+
+    update_fn: unsafe fn(*mut u8),
 }
 
 impl MeshBox {
@@ -35,6 +37,10 @@ impl MeshBox {
                 let layout = std::alloc::Layout::new::<M>();
                 ptr::drop_in_place(ptr as *mut M);
                 std::alloc::dealloc(ptr, layout);
+            },
+
+            update_fn: |ptr| unsafe {
+                (&mut *(ptr as *mut M)).update();
             },
         }
     }
@@ -91,6 +97,13 @@ impl MeshBox {
     pub fn downcast_mut_unchecked<M: MeshLike + 'static>(&mut self) -> &mut M {
         unsafe { &mut *(self.data as *mut M) }
     }
+
+    /// Triggers [`MeshLike::update`] for the stored mesh.
+    pub fn update_mesh(&mut self) {
+        // SAFETY: `self.update_fn` and `self.data` are initialized with the same type in [`MeshBox::new`],
+        // and the only way to build a [`MeshBox`] is by calling [`MeshBox::new`]
+        unsafe { (self.update_fn)(self.data) }
+    }
 }
 
 impl Drop for MeshBox {
@@ -119,6 +132,11 @@ impl MeshPool {
         self.mesh_map.insert(id, self.meshes.len() - 1);
 
         MeshHandle::<M>::new(id)
+    }
+
+    /// Triggers [`MeshLike::update`] for the mesh specified with id.
+    pub fn update_mesh(&mut self, id: usize) {
+        self.meshes[*self.mesh_map.get(&id).unwrap()].update_mesh();
     }
 
     pub fn acquire_mesh<M: MeshLike + 'static>(&self, id: usize) -> Option<&M> {
