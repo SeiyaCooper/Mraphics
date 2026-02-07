@@ -1,7 +1,7 @@
 use image::ImageBuffer;
 use mraphics_core::{
-    Animation, Camera, Color, MeshHandle, MeshLike, MeshPool, RenderInstance, Renderer, Scene,
-    Timeline,
+    Animation, Camera, Color, MeshHandle, MeshLike, MeshPool, MraphicsID, RenderInstance, Renderer,
+    Scene, Timeline,
 };
 use std::{
     cell::RefCell, collections::HashMap, marker::PhantomData, rc::Rc, sync::Arc, time::Duration,
@@ -45,7 +45,7 @@ pub struct Canvas<'res, T: Timeline<'res>, C: Camera> {
     ///
     /// The [`Canvas`] automatically manages these flags.
     /// You can manually set a flag to `true` to force a mesh update, though this is rarely needed.
-    pub update_flags: HashMap<usize, bool>,
+    pub update_flags: HashMap<MraphicsID, bool>,
 
     pub clear_color: Color<f64>,
 

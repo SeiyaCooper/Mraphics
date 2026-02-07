@@ -1,5 +1,5 @@
 use crate::{
-    Action, Animation, InstanceUpdater, Interpolatable, MeshHandle, MeshLike, MeshPool,
+    Action, Animation, InstanceUpdater, Interpolatable, MeshHandle, MeshLike, MeshPool, MraphicsID,
     Representable, Scene,
     anim_curve::{AnimCurve, Linear},
 };
@@ -29,7 +29,7 @@ where
     M::Intermediate: Interpolatable + InstanceUpdater,
 {
     /// The unique identifier of the mesh to animate.
-    pub mesh_id: usize,
+    pub mesh_id: MraphicsID,
 
     /// The transform function to apply.
     pub transform: Trans,
@@ -139,7 +139,7 @@ where
     M::Intermediate: Interpolatable + InstanceUpdater,
 {
     /// The unique identifier of the mesh to animate.
-    pub mesh_id: usize,
+    pub mesh_id: MraphicsID,
 
     pub matrix: Matrix3<f32>,
 

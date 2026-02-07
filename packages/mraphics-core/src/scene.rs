@@ -1,9 +1,9 @@
-use crate::{MeshLike, RenderInstance};
+use crate::{MeshLike, MraphicsID, RenderInstance};
 use std::collections::HashMap;
 
 pub struct Scene {
     pub instances: Vec<RenderInstance>,
-    instance_map: HashMap<usize, usize>,
+    instance_map: HashMap<MraphicsID, usize>,
 }
 
 impl Scene {
@@ -22,8 +22,8 @@ impl Scene {
             .insert(mesh.identifier(), self.instances.len() - 1);
     }
 
-    pub fn remove_renderable(&mut self, identifier: &usize) -> Option<RenderInstance> {
-        let remove_index = *self.instance_map.get(identifier)?;
+    pub fn remove_renderable(&mut self, identifier: MraphicsID) -> Option<RenderInstance> {
+        let remove_index = *self.instance_map.get(&identifier)?;
         let swap_index = self.instances.len() - 1;
 
         for index in self.instance_map.values_mut() {
@@ -35,21 +35,24 @@ impl Scene {
         Some(self.instances.swap_remove(remove_index))
     }
 
-    pub fn acquire_instance(&self, identifier: usize) -> Option<&RenderInstance> {
+    pub fn acquire_instance(&self, identifier: MraphicsID) -> Option<&RenderInstance> {
         let index = self.instance_map.get(&identifier)?;
         self.instances.get(*index)
     }
 
-    pub fn acquire_instance_unchecked(&self, identifier: usize) -> &RenderInstance {
+    pub fn acquire_instance_unchecked(&self, identifier: MraphicsID) -> &RenderInstance {
         &self.instances[*self.instance_map.get(&identifier).unwrap()]
     }
 
-    pub fn acquire_instance_mut(&mut self, identifier: usize) -> Option<&mut RenderInstance> {
+    pub fn acquire_instance_mut(&mut self, identifier: MraphicsID) -> Option<&mut RenderInstance> {
         let index = self.instance_map.get(&identifier)?;
         self.instances.get_mut(*index)
     }
 
-    pub fn acquire_instance_mut_unchecked(&mut self, identifier: usize) -> &mut RenderInstance {
+    pub fn acquire_instance_mut_unchecked(
+        &mut self,
+        identifier: MraphicsID,
+    ) -> &mut RenderInstance {
         &mut self.instances[*self.instance_map.get(&identifier).unwrap()]
     }
 }

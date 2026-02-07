@@ -1,5 +1,5 @@
 use crate::{
-    Action, Animation, MeshHandle, MeshLike, MeshPool, RenderInstance, Scene,
+    Action, Animation, MeshHandle, MeshLike, MeshPool, MraphicsID, RenderInstance, Scene,
     anim_curve::{AnimCurve, EaseInOutCubic},
 };
 use nalgebra::{UnitQuaternion, UnitVector3, Vector3};
@@ -13,7 +13,7 @@ where
     Stop: FnMut() + 'res,
     C: AnimCurve + 'static,
 {
-    pub mesh_id: usize,
+    pub mesh_id: MraphicsID,
     pub on_update: Update,
     pub on_start: Start,
     pub on_stop: Stop,
@@ -141,7 +141,7 @@ where
 /// Rotates the mesh around a given axis by a given angle.
 pub struct RotateAxisAngle {
     /// The unique identifier of the mesh to animate.
-    pub mesh_id: usize,
+    pub mesh_id: MraphicsID,
 
     /// The axis of rotation, normalized to unit length.
     pub axis: UnitVector3<f32>,
@@ -223,7 +223,7 @@ impl Animation<'static> for RotateAxisAngle {
 
 /// Shifts the mesh to the specific place
 pub struct MoveTo {
-    pub mesh_id: usize,
+    pub mesh_id: MraphicsID,
     pub target_place: Vector3<f32>,
 
     pub curve: Box<dyn AnimCurve>,
@@ -283,7 +283,7 @@ impl Animation<'static> for MoveTo {
 }
 
 pub struct ScaleTo {
-    pub mesh_id: usize,
+    pub mesh_id: MraphicsID,
     pub target_scale: Vector3<f32>,
 
     pub curve: Box<dyn AnimCurve>,
@@ -342,7 +342,7 @@ impl Animation<'static> for ScaleTo {
 }
 
 pub struct ScaleBy {
-    pub mesh_id: usize,
+    pub mesh_id: MraphicsID,
     pub scale_factor: Vector3<f32>,
 
     pub curve: Box<dyn AnimCurve>,

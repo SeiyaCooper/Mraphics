@@ -1,4 +1,4 @@
-use crate::{MeshHandle, MeshLike, RenderInstance};
+use crate::{MeshHandle, MeshLike, MraphicsID, RenderInstance};
 use std::{any::TypeId, collections::HashMap, mem, ptr};
 
 /// A type-erased container for storing any type that implements `MeshLike`.
@@ -124,7 +124,7 @@ impl Drop for MeshBox {
 
 pub struct MeshPool {
     pub meshes: Vec<MeshBox>,
-    mesh_map: HashMap<usize, usize>,
+    mesh_map: HashMap<MraphicsID, usize>,
 }
 
 impl MeshPool {
@@ -145,30 +145,30 @@ impl MeshPool {
     }
 
     /// Triggers [`MeshLike::update`] for the mesh specified by id.
-    pub fn update_mesh(&mut self, id: usize) {
+    pub fn update_mesh(&mut self, id: MraphicsID) {
         self.meshes[*self.mesh_map.get(&id).unwrap()].update_mesh();
     }
 
     /// Updates given [`RenderInstance`] using the mesh specified by id.
-    pub fn update_instance(&mut self, id: usize, instance: &mut RenderInstance) {
+    pub fn update_instance(&mut self, id: MraphicsID, instance: &mut RenderInstance) {
         self.meshes[*self.mesh_map.get(&id).unwrap()].update_instance(instance);
     }
 
-    pub fn acquire_mesh<M: MeshLike + 'static>(&self, id: usize) -> Option<&M> {
+    pub fn acquire_mesh<M: MeshLike + 'static>(&self, id: MraphicsID) -> Option<&M> {
         self.meshes[*self.mesh_map.get(&id).unwrap()].downcast_ref::<M>()
     }
 
-    pub fn acquire_mesh_unchecked<M: MeshLike + 'static>(&self, id: usize) -> &M {
+    pub fn acquire_mesh_unchecked<M: MeshLike + 'static>(&self, id: MraphicsID) -> &M {
         self.meshes[*self.mesh_map.get(&id).unwrap()]
             .downcast_ref::<M>()
             .unwrap()
     }
 
-    pub fn acquire_mesh_mut<M: MeshLike + 'static>(&mut self, id: usize) -> Option<&mut M> {
+    pub fn acquire_mesh_mut<M: MeshLike + 'static>(&mut self, id: MraphicsID) -> Option<&mut M> {
         self.meshes[*self.mesh_map.get(&id).unwrap()].downcast_mut::<M>()
     }
 
-    pub fn acquire_mesh_mut_unchecked<M: MeshLike + 'static>(&mut self, id: usize) -> &mut M {
+    pub fn acquire_mesh_mut_unchecked<M: MeshLike + 'static>(&mut self, id: MraphicsID) -> &mut M {
         self.meshes[*self.mesh_map.get(&id).unwrap()]
             .downcast_mut::<M>()
             .unwrap()

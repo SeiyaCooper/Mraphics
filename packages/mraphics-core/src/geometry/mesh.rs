@@ -1,11 +1,9 @@
-use crate::{Geometry, InstanceUpdater, Material, RenderInstance};
-use std::{marker::PhantomData, sync::atomic::AtomicUsize};
-
-static GLOBAL_MESH_ID: AtomicUsize = AtomicUsize::new(0);
+use crate::{Geometry, InstanceUpdater, Material, MraphicsID, RenderInstance};
+use std::marker::PhantomData;
 
 pub trait MeshLike: InstanceUpdater {
     /// Returns the unique identifier of this mesh.
-    fn identifier(&self) -> usize;
+    fn identifier(&self) -> MraphicsID;
 
     /// Builds a [`RenderInstance`] using this mesh's data.
     fn build_instance(&self) -> RenderInstance;
@@ -16,12 +14,12 @@ pub trait MeshLike: InstanceUpdater {
 
 #[derive(Clone)]
 pub struct MeshHandle<M: MeshLike> {
-    pub id: usize,
+    pub id: MraphicsID,
     _marker: PhantomData<M>,
 }
 
 impl<M: MeshLike> MeshHandle<M> {
-    pub fn new(id: usize) -> Self {
+    pub fn new(id: MraphicsID) -> Self {
         Self {
             id,
             _marker: PhantomData,
@@ -30,7 +28,7 @@ impl<M: MeshLike> MeshHandle<M> {
 }
 
 pub struct Mesh<G: Geometry, M: Material> {
-    pub identifier: usize,
+    pub identifier: MraphicsID,
     pub geometry: G,
     pub material: M,
 }
@@ -38,14 +36,10 @@ pub struct Mesh<G: Geometry, M: Material> {
 impl<G: Geometry, M: Material> Mesh<G, M> {
     pub fn new(geometry: G, material: M) -> Self {
         Self {
-            identifier: Self::acquire_id(),
+            identifier: MraphicsID::acquire(),
             geometry,
             material,
         }
-    }
-
-    pub fn acquire_id() -> usize {
-        GLOBAL_MESH_ID.fetch_add(1, std::sync::atomic::Ordering::Relaxed)
     }
 }
 
@@ -57,7 +51,7 @@ impl<G: Geometry, M: Material> InstanceUpdater for Mesh<G, M> {
 }
 
 impl<G: Geometry, M: Material> MeshLike for Mesh<G, M> {
-    fn identifier(&self) -> usize {
+    fn identifier(&self) -> MraphicsID {
         self.identifier
     }
 

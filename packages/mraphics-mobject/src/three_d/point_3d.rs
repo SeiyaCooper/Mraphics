@@ -1,5 +1,5 @@
 use mraphics_core::{
-    BasicMaterial, Geometry, InstanceUpdater, Interpolatable, Material, Mesh, MeshLike,
+    BasicMaterial, Geometry, InstanceUpdater, Interpolatable, Material, MeshLike, MraphicsID,
     RenderInstance, Representable, Sphere, Transformable,
 };
 use nalgebra::Vector3;
@@ -19,7 +19,7 @@ pub struct Point3D {
     pub center: Point3DCenter,
 
     #[cfg_attr(feature = "wasm", wasm_bindgen(skip))]
-    pub identifier: usize,
+    pub identifier: MraphicsID,
 
     #[cfg_attr(feature = "wasm", wasm_bindgen(skip))]
     pub geometry: Sphere,
@@ -57,7 +57,7 @@ impl Default for Point3D {
             center: Point3DCenter {
                 position: [0.0, 0.0, 0.0],
             },
-            identifier: Mesh::<Sphere, BasicMaterial>::acquire_id(),
+            identifier: MraphicsID::acquire(),
             geometry: Sphere {
                 radius: 0.06,
                 theta_segments: 8,
@@ -89,7 +89,7 @@ impl MeshLike for Point3D {
         instance
     }
 
-    fn identifier(&self) -> usize {
+    fn identifier(&self) -> MraphicsID {
         self.identifier
     }
 }

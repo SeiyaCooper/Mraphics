@@ -1,8 +1,8 @@
-use crate::{GeometryView, Material, MaterialView, constants::MODEL_MAT_LABEL};
+use crate::{GeometryView, Material, MaterialView, MraphicsID, constants::MODEL_MAT_LABEL};
 use nalgebra::{Isometry3, Matrix4, Translation3, UnitQuaternion, UnitVector3, Vector3};
 
 pub struct RenderInstance {
-    pub identifier: usize,
+    pub identifier: MraphicsID,
     pub geometry: GeometryView,
     pub material: MaterialView,
 
@@ -14,7 +14,7 @@ pub struct RenderInstance {
 }
 
 impl RenderInstance {
-    pub fn new<M: Material>(identifier: usize, material: &M) -> Self {
+    pub fn new<M: Material>(identifier: MraphicsID, material: &M) -> Self {
         Self {
             identifier,
             geometry: GeometryView::new(),
@@ -33,7 +33,7 @@ impl RenderInstance {
         self.children.push(child);
     }
 
-    pub fn remove_child(&mut self, identifier: usize) {
+    pub fn remove_child(&mut self, identifier: MraphicsID) {
         self.children.retain(|child| child.identifier != identifier);
     }
 
