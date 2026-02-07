@@ -1,5 +1,3 @@
-use std::mem;
-
 use crate::constants::{
     INDEX_BUFFER_LABEL, PROJECTION_MAT_INDEX, PROJECTION_MAT_LABEL, VIEW_MAT_INDEX, VIEW_MAT_LABEL,
 };
