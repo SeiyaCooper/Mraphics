@@ -11,6 +11,38 @@ pub const RESOLUTION_720P: (u32, u32) = (1280, 720);
 pub const RESOLUTION_480P: (u32, u32) = (854, 480);
 pub const RESOLUTION_360P: (u32, u32) = (640, 360);
 
+// Primitive topologies
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum PrimitiveTopology {
+    PointList,
+    LineList,
+    LineStrip,
+    TriangleList,
+    TriangleStrip,
+}
+
+impl PrimitiveTopology {
+    pub fn to_wgpu(&self) -> wgpu::PrimitiveTopology {
+        match self {
+            PrimitiveTopology::PointList => wgpu::PrimitiveTopology::PointList,
+            PrimitiveTopology::LineList => wgpu::PrimitiveTopology::LineList,
+            PrimitiveTopology::LineStrip => wgpu::PrimitiveTopology::LineStrip,
+            PrimitiveTopology::TriangleList => wgpu::PrimitiveTopology::TriangleList,
+            PrimitiveTopology::TriangleStrip => wgpu::PrimitiveTopology::TriangleStrip,
+        }
+    }
+
+    pub fn to_str(&self) -> &str {
+        match self {
+            PrimitiveTopology::PointList => "point-list",
+            PrimitiveTopology::LineList => "line-list",
+            PrimitiveTopology::LineStrip => "line-strip",
+            PrimitiveTopology::TriangleList => "triangle-list",
+            PrimitiveTopology::TriangleStrip => "triangle-strip",
+        }
+    }
+}
+
 // Built-in gadgets
 pub const VIEW_MAT_LABEL: &'static str = "mraphics-view-mat";
 pub const VIEW_MAT_INDEX: GadgetIndex = GadgetIndex {

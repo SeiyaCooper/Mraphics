@@ -1,4 +1,7 @@
-use crate::{GeometryView, Material, MaterialView, MraphicsID, constants::MODEL_MAT_LABEL};
+use crate::{
+    GeometryView, Material, MaterialView, MraphicsID,
+    constants::{MODEL_MAT_LABEL, PrimitiveTopology},
+};
 use nalgebra::{Isometry3, Matrix4, Translation3, UnitQuaternion, UnitVector3, Vector3};
 
 pub struct RenderInstance {
@@ -7,6 +10,8 @@ pub struct RenderInstance {
     pub material: MaterialView,
 
     pub children: Vec<RenderInstance>,
+
+    pub topology: PrimitiveTopology,
 
     scale: Vector3<f32>,
     isometry: Isometry3<f32>,
@@ -22,6 +27,8 @@ impl RenderInstance {
                 .with_code(material.shader_code().to_string()),
 
             children: Vec::new(),
+
+            topology: PrimitiveTopology::TriangleList,
 
             scale: Vector3::new(1.0, 1.0, 1.0),
             isometry: Isometry3::new(Vector3::zeros(), Vector3::zeros()),

@@ -280,7 +280,7 @@ impl Renderer {
         let pipeline = self.pipeline_manager.acquire_pipeline(
             &self.device,
             texture_format,
-            &instance.material,
+            instance,
             &Conveyor::collect_bind_group_layouts(vec![
                 &self.shared_conveyor.bundles,
                 &mesh_conveyor.bundles,
