@@ -7,7 +7,7 @@ pub trait MeshLike: InstanceUpdater {
     /// Returns the unique identifier of this mesh.
     fn identifier(&self) -> usize;
 
-    /// Build a render instance using this mesh's data.
+    /// Builds a [`RenderInstance`] using this mesh's data.
     fn build_instance(&self) -> RenderInstance;
 
     /// Updates self before updating the render instance, optional.
@@ -39,8 +39,8 @@ impl<G: Geometry, M: Material> Mesh<G, M> {
     pub fn new(geometry: G, material: M) -> Self {
         Self {
             identifier: Self::acquire_id(),
-            geometry: geometry,
-            material: material,
+            geometry,
+            material,
         }
     }
 

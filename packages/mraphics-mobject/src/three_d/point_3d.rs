@@ -76,7 +76,7 @@ impl InstanceUpdater for Point3D {
 }
 
 impl MeshLike for Point3D {
-    fn build_instance(&self) -> mraphics_core::RenderInstance {
+    fn build_instance(&self) -> RenderInstance {
         let mut instance = RenderInstance::new(self.identifier, &self.material);
 
         instance.move_to(&Vector3::from_column_slice(&self.center.position));

@@ -1,3 +1,5 @@
+use std::mem;
+
 use crate::constants::{
     INDEX_BUFFER_LABEL, PROJECTION_MAT_INDEX, PROJECTION_MAT_LABEL, VIEW_MAT_INDEX, VIEW_MAT_LABEL,
 };
@@ -185,8 +187,25 @@ impl Renderer {
             )
             .unwrap();
 
+        fn render_recursive(
+            this: &mut Renderer,
+            texture_format: TextureFormat,
+            render_pass: &mut wgpu::RenderPass,
+            instance: &mut RenderInstance,
+        ) {
+            this.render_instance(texture_format, render_pass, instance);
+
+            for mut child in &mut instance.children {
+                this.render_instance(texture_format, render_pass, &mut child);
+
+                if !child.children.is_empty() {
+                    render_recursive(this, texture_format, render_pass, &mut child);
+                }
+            }
+        }
+
         for instance in instances {
-            self.render_instance(texture_format, &mut render_pass, instance);
+            render_recursive(self, texture_format, &mut render_pass, instance);
         }
 
         drop(render_pass);

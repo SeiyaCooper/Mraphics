@@ -6,6 +6,8 @@ pub struct RenderInstance {
     pub geometry: GeometryView,
     pub material: MaterialView,
 
+    pub children: Vec<RenderInstance>,
+
     scale: Vector3<f32>,
     isometry: Isometry3<f32>,
     matrix: Matrix4<f32>,
@@ -18,10 +20,21 @@ impl RenderInstance {
             geometry: GeometryView::new(),
             material: MaterialView::new(material.identifier())
                 .with_code(material.shader_code().to_string()),
+
+            children: Vec::new(),
+
             scale: Vector3::new(1.0, 1.0, 1.0),
             isometry: Isometry3::new(Vector3::zeros(), Vector3::zeros()),
             matrix: Matrix4::identity(),
         }
+    }
+
+    pub fn add_child(&mut self, child: RenderInstance) {
+        self.children.push(child);
+    }
+
+    pub fn remove_child(&mut self, identifier: usize) {
+        self.children.retain(|child| child.identifier != identifier);
     }
 
     pub fn matrix(&self) -> &Matrix4<f32> {
