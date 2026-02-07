@@ -136,6 +136,11 @@ impl<'res, T: Timeline<'res>, C: Camera> Canvas<'res, T, C> {
         }
     }
 
+    /// Marks a mesh for update.
+    pub fn mark_for_update<Mesh: MeshLike + 'static>(&mut self, mesh_handle: &MeshHandle<Mesh>) {
+        self.update_flags.insert(mesh_handle.id, true);
+    }
+
     pub fn with_instance<F: FnMut(Option<&mut RenderInstance>), Mesh: MeshLike>(
         &self,
         mesh_handle: &MeshHandle<Mesh>,
