@@ -1,5 +1,6 @@
 use crate::render::GadgetData;
 
+#[derive(Debug)]
 pub struct MaterialView {
     pub identifier: String,
     pub shader_code: String,
@@ -42,5 +43,7 @@ impl MaterialView {
 pub trait Material: Clone {
     fn identifier(&self) -> &str;
     fn shader_code(&self) -> &str;
-    fn update_view(&self, view: &mut MaterialView);
+    fn update_view(&self, view: &mut MaterialView) {
+        let _ = view;
+    }
 }

@@ -108,7 +108,7 @@ impl<'res, T: Timeline<'res>, C: Camera> Canvas<'res, T, C> {
 
         let mesh_handle = self.mesh_pool.borrow_mut().add_mesh(mesh);
 
-        self.update_flags.insert(mesh_handle.id, false);
+        self.update_flags.insert(mesh_handle.identifier(), false);
 
         mesh_handle
     }
@@ -138,7 +138,7 @@ impl<'res, T: Timeline<'res>, C: Camera> Canvas<'res, T, C> {
 
     /// Marks a mesh for update.
     pub fn mark_for_update<Mesh: MeshLike + 'static>(&mut self, mesh_handle: &MeshHandle<Mesh>) {
-        self.update_flags.insert(mesh_handle.id, true);
+        self.update_flags.insert(mesh_handle.identifier(), true);
     }
 
     pub fn with_instance<F: FnMut(Option<&mut RenderInstance>), Mesh: MeshLike>(
@@ -146,7 +146,11 @@ impl<'res, T: Timeline<'res>, C: Camera> Canvas<'res, T, C> {
         mesh_handle: &MeshHandle<Mesh>,
         mut closure: F,
     ) {
-        closure(self.scene.borrow_mut().acquire_instance_mut(mesh_handle.id));
+        closure(
+            self.scene
+                .borrow_mut()
+                .acquire_instance_mut(mesh_handle.identifier()),
+        );
     }
 
     pub fn with_instance_unchecked<F: FnMut(&mut RenderInstance), Mesh: MeshLike>(
@@ -157,7 +161,7 @@ impl<'res, T: Timeline<'res>, C: Camera> Canvas<'res, T, C> {
         closure(
             self.scene
                 .borrow_mut()
-                .acquire_instance_mut_unchecked(mesh_handle.id),
+                .acquire_instance_mut_unchecked(mesh_handle.identifier()),
         );
     }
 
@@ -169,7 +173,7 @@ impl<'res, T: Timeline<'res>, C: Camera> Canvas<'res, T, C> {
         closure(
             self.mesh_pool
                 .borrow_mut()
-                .acquire_mesh_mut::<Mesh>(mesh_handle.id),
+                .acquire_mesh_mut::<Mesh>(mesh_handle.identifier()),
         )
     }
 
@@ -181,7 +185,7 @@ impl<'res, T: Timeline<'res>, C: Camera> Canvas<'res, T, C> {
         closure(
             self.mesh_pool
                 .borrow_mut()
-                .acquire_mesh_mut_unchecked::<Mesh>(mesh_handle.id),
+                .acquire_mesh_mut_unchecked::<Mesh>(mesh_handle.identifier()),
         )
     }
 

@@ -126,6 +126,10 @@ impl GeometryView {
     pub fn set_attribute(&mut self, label: &str, data: Vec<u8>) -> Result<(), GeometryViewError> {
         let attribute = self.get_attribute_mut(label)?;
 
+        if attribute.data.len() != data.len() {
+            attribute.needs_update_buffer = true;
+        }
+
         attribute.data = data;
         attribute.needs_update_value = true;
 
@@ -167,6 +171,10 @@ impl GeometryView {
     pub fn set_uniform(&mut self, label: &str, data: Vec<u8>) -> Result<(), GeometryViewError> {
         let uniform = self.get_uniform_mut(label)?;
 
+        if uniform.data.len() != data.len() {
+            uniform.needs_update_buffer = true;
+        }
+
         uniform.data = data;
         uniform.needs_update_value = true;
 
@@ -205,8 +213,9 @@ pub trait Geometry: Clone {
     fn update(&mut self) {}
 }
 
-/// A collection of vertices in homogeneous coordinates (x, y, z, w).
+/// The minimal implementation of [`Geometry`]
 ///
+/// A collection of vertices in homogeneous coordinates (x, y, z, w).
 /// This is typically used as an intermediate representation, especially in animations.
 #[derive(Clone)]
 pub struct Vertices {
@@ -263,5 +272,19 @@ impl Interpolatable for Vertices {
 impl InstanceUpdater for Vertices {
     fn update_instance(&self, instance: &mut super::RenderInstance) {
         self.update_geometry_view(&mut instance.geometry);
+    }
+}
+
+impl Geometry for Vertices {
+    fn init_view(&self, view: &mut GeometryView) {
+        view.add_attribute(
+            crate::constants::POSITION_ATTR_LABEL,
+            crate::constants::POSITION_ATTR_INDEX,
+            bytemuck::cast_slice::<f32, u8>(&self.data.concat()).to_vec(),
+        );
+    }
+
+    fn update_view(&self, view: &mut GeometryView) {
+        self.update_geometry_view(view);
     }
 }

@@ -277,15 +277,34 @@ impl Renderer {
             material_conveyor.update_bundles(&self.device);
         }
 
+        let maybe_bind_group_layouts = Conveyor::collect_bind_group_layouts(vec![
+            &self.shared_conveyor.bundles,
+            &mesh_conveyor.bundles,
+            &material_conveyor.bundles,
+        ]);
+        let bind_group_placeholder = if maybe_bind_group_layouts.contains(&None) {
+            Some(
+                self.device
+                    .create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
+                        label: Some(&format!("Mraphics bind group layout placeholder",)),
+                        entries: &[],
+                    }),
+            )
+        } else {
+            None
+        };
+        let bind_group_layouts = maybe_bind_group_layouts
+            .iter()
+            .map(|bind_group| {
+                bind_group.unwrap_or_else(|| bind_group_placeholder.as_ref().unwrap())
+            })
+            .collect::<Vec<_>>();
+
         let pipeline = self.pipeline_manager.acquire_pipeline(
             &self.device,
             texture_format,
             instance,
-            &Conveyor::collect_bind_group_layouts(vec![
-                &self.shared_conveyor.bundles,
-                &mesh_conveyor.bundles,
-                &material_conveyor.bundles,
-            ]),
+            &bind_group_layouts,
             needs_update,
         );
 

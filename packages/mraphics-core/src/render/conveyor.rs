@@ -111,15 +111,15 @@ impl Conveyor {
         self.bundles = Vec::new();
 
         for (group_index, group_desc) in self.indices.iter().enumerate() {
-            let mut bind_group_layout_entries: Vec<wgpu::BindGroupLayoutEntry> = Vec::new();
-            let mut bind_group_entries: Vec<wgpu::BindGroupEntry> = Vec::new();
-
             if group_desc.is_none() {
                 self.bundles.push(None);
                 continue;
             }
 
             let group_desc = group_desc.as_ref().unwrap();
+
+            let mut bind_group_layout_entries: Vec<wgpu::BindGroupLayoutEntry> = Vec::new();
+            let mut bind_group_entries: Vec<wgpu::BindGroupEntry> = Vec::new();
 
             for (binding_index, gadget_label) in group_desc {
                 let gadget = self.gadgets.get(gadget_label).unwrap();
@@ -175,9 +175,17 @@ impl Conveyor {
         }
     }
 
+    /// Collects bind group layouts from a collection of bundles.
+    ///
+    /// # Behavior
+    /// - If no bundle defines a bind group at index `n`, but a later index `m > n` is defined,
+    ///   the result at position `n` will be `None`.
+    /// - If multiple bundles define a bind group at the same index, only the first
+    ///   encountered (in iteration order) will be used.
+    /// - The output length equals the maximum bundle length across the collection.
     pub fn collect_bind_group_layouts(
         bundles_collection: Vec<&Vec<Option<Bundle>>>,
-    ) -> Vec<&wgpu::BindGroupLayout> {
+    ) -> Vec<Option<&wgpu::BindGroupLayout>> {
         let mut max_len = 0;
         let mut bind_group_layouts = Vec::new();
 
@@ -187,12 +195,15 @@ impl Conveyor {
             }
         }
 
-        for i in 0..max_len {
+        'outer: for i in 0..max_len {
             for bundles in bundles_collection.iter() {
                 if !bundles.get(i).is_none() && !bundles[i].is_none() {
-                    bind_group_layouts.push(&bundles[i].as_ref().unwrap().bind_group_layout);
+                    bind_group_layouts.push(Some(&bundles[i].as_ref().unwrap().bind_group_layout));
+                    continue 'outer;
                 }
             }
+
+            bind_group_layouts.push(None);
         }
 
         bind_group_layouts

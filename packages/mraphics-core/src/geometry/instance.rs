@@ -4,6 +4,7 @@ use crate::{
 };
 use nalgebra::{Isometry3, Matrix4, Translation3, UnitQuaternion, UnitVector3, Vector3};
 
+#[derive(Debug)]
 pub struct RenderInstance {
     pub identifier: MraphicsID,
     pub geometry: GeometryView,

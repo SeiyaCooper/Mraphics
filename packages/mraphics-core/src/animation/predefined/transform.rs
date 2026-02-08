@@ -48,7 +48,7 @@ where
 {
     pub fn new(mesh_handle: &MeshHandle<M>, trans: Trans) -> Self {
         Self {
-            mesh_id: mesh_handle.id,
+            mesh_id: mesh_handle.identifier(),
             transform: trans,
 
             curve: Box::new(Linear),
@@ -155,7 +155,7 @@ where
 {
     pub fn new(mesh_handle: &MeshHandle<M>, matrix: Matrix3<f32>) -> Self {
         Self {
-            mesh_id: mesh_handle.id,
+            mesh_id: mesh_handle.identifier(),
             matrix,
 
             curve: Box::new(Linear),

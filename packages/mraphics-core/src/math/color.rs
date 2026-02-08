@@ -88,3 +88,9 @@ impl<T: ColorComponent> Index<usize> for Color<T> {
         &self.inner[index]
     }
 }
+
+impl<T: ColorComponent> Into<Color<T>> for [T; 4] {
+    fn into(self) -> Color<T> {
+        Color::new(self[0], self[1], self[2], self[3])
+    }
+}

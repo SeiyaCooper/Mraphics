@@ -27,7 +27,7 @@ impl<'res, M: MeshLike + 'static>
 {
     pub fn new(mesh_handle: &MeshHandle<M>) -> Self {
         Self {
-            mesh_id: mesh_handle.id,
+            mesh_id: mesh_handle.identifier(),
             on_update: |_, _, _, _| {},
             on_start: || {},
             on_stop: || {},
@@ -159,7 +159,7 @@ impl RotateAxisAngle {
         angle_rad: f32,
     ) -> Self {
         Self {
-            mesh_id: mesh_handle.id,
+            mesh_id: mesh_handle.identifier(),
             axis,
             angle_rad,
             curve: Box::new(EaseInOutCubic),
@@ -172,7 +172,7 @@ impl RotateAxisAngle {
         angle_rad: f32,
     ) -> Self {
         Self {
-            mesh_id: mesh_handle.id,
+            mesh_id: mesh_handle.identifier(),
             axis: UnitVector3::new_normalize(axis),
             angle_rad,
             curve: Box::new(EaseInOutCubic),
@@ -235,7 +235,7 @@ impl MoveTo {
         target_place: Vector3<f32>,
     ) -> Self {
         Self {
-            mesh_id: mesh_handle.id,
+            mesh_id: mesh_handle.identifier(),
             target_place,
             curve: Box::new(EaseInOutCubic),
         }
@@ -295,7 +295,7 @@ impl ScaleTo {
         target_scale: Vector3<f32>,
     ) -> Self {
         Self {
-            mesh_id: mesh_handle.id,
+            mesh_id: mesh_handle.identifier(),
             target_scale,
             curve: Box::new(EaseInOutCubic),
         }
@@ -354,7 +354,7 @@ impl ScaleBy {
         scale_factor: Vector3<f32>,
     ) -> Self {
         Self {
-            mesh_id: mesh_handle.id,
+            mesh_id: mesh_handle.identifier(),
             scale_factor,
 
             curve: Box::new(EaseInOutCubic),

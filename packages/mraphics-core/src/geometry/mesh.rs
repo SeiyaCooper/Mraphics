@@ -14,7 +14,8 @@ pub trait MeshLike: InstanceUpdater {
 
 #[derive(Clone)]
 pub struct MeshHandle<M: MeshLike> {
-    pub id: MraphicsID,
+    id: MraphicsID,
+
     _marker: PhantomData<M>,
 }
 
@@ -25,10 +26,15 @@ impl<M: MeshLike> MeshHandle<M> {
             _marker: PhantomData,
         }
     }
+
+    pub fn identifier(&self) -> MraphicsID {
+        self.id
+    }
 }
 
 pub struct Mesh<G: Geometry, M: Material> {
-    pub identifier: MraphicsID,
+    identifier: MraphicsID,
+
     pub geometry: G,
     pub material: M,
 }
