@@ -11,7 +11,7 @@ impl MultiColoredMaterial {
 
 impl Material for MultiColoredMaterial {
     fn identifier(&self) -> &str {
-        "Mraphics Multi-colored Materil"
+        "Mraphics Multi-colored Material"
     }
 
     fn shader_code(&self) -> &str {

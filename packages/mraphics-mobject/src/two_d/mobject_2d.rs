@@ -1,7 +1,11 @@
 use mraphics_core::{
-    BasicMaterial, Color, GeometryView, InstanceUpdater, Material, MeshLike, MraphicsID,
-    RenderInstance,
+    Color, GadgetIndex, GeometryView, InstanceUpdater, Material, MeshLike, Mobject2DMaterial,
+    MraphicsID, MultiColoredMaterial, RenderInstance,
 };
+
+const PREVIOUS_ATTR_LABEL: &'static str = "mobject-2d-previous-attribute";
+const REVERSE_ATTR_LABEL: &'static str = "mobject-2d-reverse-attribute";
+const THICKNESS_LABEL: &'static str = "mobject-2d-thickness-uniform";
 
 pub struct Mobject2DPath {
     pub vertices: Vec<[f32; 3]>,
@@ -29,9 +33,10 @@ impl Mobject2DPath {
     }
 }
 
-struct Mobject2DStroke {
-    color: Color<f32>,
-    material: BasicMaterial,
+pub struct Mobject2DStroke {
+    pub color: Color<f32>,
+    pub thickness: f32,
+    material: Mobject2DMaterial,
 }
 
 impl Mobject2DStroke {
@@ -39,8 +44,8 @@ impl Mobject2DStroke {
         Self {
             // SAFETY: `BLACK` is a valid hex color string defined in `crate::constants`.
             color: Color::from_hex_str(mraphics_core::constants::BLACK).unwrap(),
-
-            material: BasicMaterial::new(),
+            thickness: 0.05,
+            material: Mobject2DMaterial::new(),
         }
     }
 
@@ -48,51 +53,128 @@ impl Mobject2DStroke {
         view.add_attribute(
             mraphics_core::constants::POSITION_ATTR_LABEL,
             mraphics_core::constants::POSITION_ATTR_INDEX,
-            bytemuck::cast_slice::<f32, u8>(&[]).to_vec(),
+            vec![],
+        );
+
+        view.add_attribute(
+            PREVIOUS_ATTR_LABEL,
+            GadgetIndex {
+                group_index: 1,
+                binding_index: 3,
+            },
+            vec![],
+        );
+
+        view.add_attribute(
+            REVERSE_ATTR_LABEL,
+            GadgetIndex {
+                group_index: 1,
+                binding_index: 4,
+            },
+            vec![],
+        );
+
+        view.add_attribute(
+            mraphics_core::constants::COLOR_ATTR_LABEL,
+            mraphics_core::constants::COLOR_ATTR_INDEX,
+            vec![],
+        );
+
+        view.add_uniform(
+            THICKNESS_LABEL,
+            GadgetIndex {
+                group_index: 1,
+                binding_index: 5,
+            },
+            vec![],
         );
     }
 
     fn update_geometry_view(&self, paths: &Vec<Mobject2DPath>, view: &mut GeometryView) {
         let mut vertices = Vec::new();
+        let mut previous = Vec::new();
+        let mut color = Vec::new();
+        let mut reverse = Vec::new();
 
         fn to_homogeneous(point: &[f32; 3]) -> [f32; 4] {
             [point[0], point[1], point[2], 1.0]
         }
 
-        fn build_polygon(points: &Vec<[f32; 3]>, output: &mut Vec<f32>) {
-            // We need at least three points to build a polygon.
-            if points.is_empty() || points.len() < 3 {
+        let mut build_path = |path: &Mobject2DPath| {
+            let points = &path.vertices;
+
+            // We need at least two points to build segments.
+            if points.is_empty() || points.len() < 2 {
                 return;
             }
 
-            let first = &points[0];
+            for i in 1..points.len() {
+                let start = &to_homogeneous(&points[i]);
+                let end = &to_homogeneous(&points[i - 1]);
 
-            // SAFETY: Indices are within the valid range.
-            // 1. Range `1..(points.len() - 1)` ensures `i ∈ [1, len - 2]`
-            // 2. Thus `i < len` and `i + 1 < len` for all iterations
-            for i in 1..(points.len() - 1) {
-                output.extend_from_slice(&to_homogeneous(first));
-                output.extend_from_slice(&to_homogeneous(&points[i]));
-                output.extend_from_slice(&to_homogeneous(&points[i + 1]));
+                vertices.extend_from_slice(start);
+                vertices.extend_from_slice(start);
+                vertices.extend_from_slice(end);
+                vertices.extend_from_slice(start);
+                vertices.extend_from_slice(end);
+                vertices.extend_from_slice(end);
+
+                previous.extend_from_slice(end);
+                previous.extend_from_slice(end);
+                previous.extend_from_slice(start);
+                previous.extend_from_slice(end);
+                previous.extend_from_slice(start);
+                previous.extend_from_slice(start);
+
+                color.extend_from_slice(&path.stroke_color);
+                color.extend_from_slice(&path.stroke_color);
+                color.extend_from_slice(&path.stroke_color);
+                color.extend_from_slice(&path.stroke_color);
+                color.extend_from_slice(&path.stroke_color);
+                color.extend_from_slice(&path.stroke_color);
+
+                reverse.extend_from_slice(&[-1., 1., 1., 1., 1., -1.]);
             }
-        }
+        };
 
         for path in paths {
-            build_polygon(&path.vertices, &mut vertices);
+            build_path(&path);
         }
 
-        // SAFETY: This attribute exists because we initialized it in `Self::init_geometry_view`
+        // SAFETY: These attributes exist because we initialized them in `Self::init_geometry_view`
         view.set_attribute(
             mraphics_core::constants::POSITION_ATTR_LABEL,
             Vec::from(bytemuck::cast_slice::<f32, u8>(&vertices)),
         )
-        .unwrap()
+        .unwrap();
+        view.set_attribute(
+            PREVIOUS_ATTR_LABEL,
+            Vec::from(bytemuck::cast_slice::<f32, u8>(&previous)),
+        )
+        .unwrap();
+        view.set_attribute(
+            REVERSE_ATTR_LABEL,
+            Vec::from(bytemuck::cast_slice::<f32, u8>(&reverse)),
+        )
+        .unwrap();
+        view.set_attribute(
+            mraphics_core::constants::COLOR_ATTR_LABEL,
+            Vec::from(bytemuck::cast_slice::<f32, u8>(&color)),
+        )
+        .unwrap();
+        view.set_uniform(
+            THICKNESS_LABEL,
+            Vec::from(bytemuck::cast_slice::<f32, u8>(&[self.thickness])),
+        )
+        .unwrap();
+
+        view.indices = mraphics_core::GeometryIndices::Sequential((vertices.len() / 4) as u32);
     }
 }
 
-struct Mobject2DFill {
-    color: Color<f32>,
-    material: BasicMaterial,
+pub struct Mobject2DFill {
+    pub color: Color<f32>,
+    material: MultiColoredMaterial,
 }
 
 impl Mobject2DFill {
@@ -101,7 +183,7 @@ impl Mobject2DFill {
             // SAFETY: `WHITE` is a valid hex color string defined in `crate::constants`.
             color: Color::from_hex_str(mraphics_core::constants::WHITE).unwrap(),
 
-            material: BasicMaterial::new(),
+            material: MultiColoredMaterial::new(),
         }
     }
 
@@ -109,20 +191,27 @@ impl Mobject2DFill {
         view.add_attribute(
             mraphics_core::constants::POSITION_ATTR_LABEL,
             mraphics_core::constants::POSITION_ATTR_INDEX,
-            bytemuck::cast_slice::<f32, u8>(&[]).to_vec(),
+            vec![],
+        );
+        view.add_attribute(
+            mraphics_core::constants::COLOR_ATTR_LABEL,
+            mraphics_core::constants::COLOR_ATTR_INDEX,
+            vec![],
         );
     }
 
     fn update_geometry_view(&self, paths: &Vec<Mobject2DPath>, view: &mut GeometryView) {
         let mut vertices = Vec::new();
-        let mut vertex_count = 0;
+        let mut colors = Vec::new();
 
         fn to_homogeneous(point: &[f32; 3]) -> [f32; 4] {
             [point[0], point[1], point[2], 1.0]
         }
 
-        fn build_polygon(points: &Vec<[f32; 3]>, output: &mut Vec<f32>, count: &mut u32) {
-            // We need at least three points to build a polygon.
+        fn build_path(path: &Mobject2DPath, vertices: &mut Vec<f32>, colors: &mut Vec<f32>) {
+            let points = &path.vertices;
+
+            // We need at least three points to build polygons.
             if points.is_empty() || points.len() < 3 {
                 return;
             }
@@ -133,26 +222,33 @@ impl Mobject2DFill {
             // 1. Range `1..(points.len() - 1)` ensures `i ∈ [1, len - 2]`
             // 2. Thus `i < len` and `i + 1 < len` for all iterations
             for i in 1..(points.len() - 1) {
-                output.extend_from_slice(&to_homogeneous(first));
-                output.extend_from_slice(&to_homogeneous(&points[i]));
-                output.extend_from_slice(&to_homogeneous(&points[i + 1]));
+                vertices.extend_from_slice(&to_homogeneous(first));
+                vertices.extend_from_slice(&to_homogeneous(&points[i]));
+                vertices.extend_from_slice(&to_homogeneous(&points[i + 1]));
 
-                *count += 3
+                colors.extend_from_slice(&path.fill_color);
+                colors.extend_from_slice(&path.fill_color);
+                colors.extend_from_slice(&path.fill_color);
             }
         }
 
         for path in paths {
-            build_polygon(&path.vertices, &mut vertices, &mut vertex_count);
+            build_path(&path, &mut vertices, &mut colors);
         }
 
-        // SAFETY: This attribute exists because we initialized it in `Self::init_geometry_view`
+        // SAFETY: These attributes exist because we initialized them in `Self::init_geometry_view`
         view.set_attribute(
             mraphics_core::constants::POSITION_ATTR_LABEL,
             Vec::from(bytemuck::cast_slice::<f32, u8>(&vertices)),
         )
         .unwrap();
+        view.set_attribute(
+            mraphics_core::constants::COLOR_ATTR_LABEL,
+            Vec::from(bytemuck::cast_slice::<f32, u8>(&colors)),
+        )
+        .unwrap();
 
-        view.indices = mraphics_core::GeometryIndices::Sequential(vertex_count);
+        view.indices = mraphics_core::GeometryIndices::Sequential((vertices.len() / 4) as u32);
     }
 }
 
@@ -162,8 +258,8 @@ pub struct Mobject2D {
     vertices: Vec<[f32; 3]>,
     paths: Vec<Mobject2DPath>,
 
-    stroke: Mobject2DStroke,
-    fill: Mobject2DFill,
+    pub stroke: Mobject2DStroke,
+    pub fill: Mobject2DFill,
 }
 
 impl Mobject2D {

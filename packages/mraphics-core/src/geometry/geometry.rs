@@ -164,7 +164,7 @@ impl GeometryView {
         };
 
         self.uniform_map
-            .insert(uniform.label.clone(), self.attributes.len());
+            .insert(uniform.label.clone(), self.uniforms.len());
         self.uniforms.push(uniform);
     }
 

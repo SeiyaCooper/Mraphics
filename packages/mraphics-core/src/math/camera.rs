@@ -53,7 +53,7 @@ impl PerspectiveCamera {
 impl Default for PerspectiveCamera {
     fn default() -> Self {
         let (far, near, aspect, fov_rad) = (1000.0, 0.1, 1.0, PI / 4.0);
-        let (center, rotation) = (Vector3::new(0.0, 0.0, 5.0), Vector3::new(0.0, 0.0, 0.0));
+        let (center, rotation) = (Vector3::new(0.0, 0.0, 10.0), Vector3::new(0.0, 0.0, 0.0));
         let (view_transform, proj_transform) = (
             Isometry3::new(-center, rotation),
             Perspective3::new(aspect, fov_rad, near, far),
