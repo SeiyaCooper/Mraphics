@@ -138,7 +138,9 @@ impl Mobject2DStroke {
         };
 
         for path in paths {
-            build_path(&path);
+            if path.stroked {
+                build_path(&path);
+            }
         }
 
         // SAFETY: These attributes exist because we initialized them in `Self::init_geometry_view`
@@ -233,7 +235,9 @@ impl Mobject2DFill {
         }
 
         for path in paths {
-            build_path(&path, &mut vertices, &mut colors);
+            if path.filled {
+                build_path(&path, &mut vertices, &mut colors);
+            }
         }
 
         // SAFETY: These attributes exist because we initialized them in `Self::init_geometry_view`
