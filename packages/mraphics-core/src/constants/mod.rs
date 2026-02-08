@@ -58,13 +58,13 @@ pub const PROJECTION_MAT_INDEX: GadgetIndex = GadgetIndex {
 
 pub const MODEL_MAT_LABEL: &'static str = "mraphics-model-mat";
 pub const MODEL_MAT_INDEX: GadgetIndex = GadgetIndex {
-    group_index: 2,
+    group_index: 1,
     binding_index: 0,
 };
 
 pub const POSITION_ATTR_LABEL: &'static str = "mraphics-position-attribute";
 pub const POSITION_ATTR_INDEX: GadgetIndex = GadgetIndex {
-    group_index: 2,
+    group_index: 1,
     binding_index: 1,
 };
 
@@ -72,6 +72,6 @@ pub const INDEX_BUFFER_LABEL: &'static str = "mraphics-index-buffer";
 
 pub const COLOR_ATTR_LABEL: &'static str = "mraphics-color-attribute";
 pub const COLOR_ATTR_INDEX: GadgetIndex = GadgetIndex {
-    group_index: 2,
+    group_index: 1,
     binding_index: 2,
 };

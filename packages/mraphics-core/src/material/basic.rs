@@ -2,7 +2,7 @@ use crate::{Color, GadgetData, GadgetIndex, Material};
 
 pub const COLOR_UNIFORM_LABEL: &'static str = "mraphics-color-uniform";
 pub const COLOR_UNIFORM_INDEX: GadgetIndex = GadgetIndex {
-    group_index: 1,
+    group_index: 2,
     binding_index: 0,
 };
 
