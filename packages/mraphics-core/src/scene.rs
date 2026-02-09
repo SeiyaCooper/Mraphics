@@ -17,7 +17,10 @@ impl Scene {
     pub fn add_mesh<M: MeshLike>(&mut self, mesh: &mut M) {
         mesh.update();
 
-        self.instances.push(mesh.build_instance());
+        let mut instance = mesh.build_instance();
+        mesh.update_instance(&mut instance);
+
+        self.instances.push(instance);
         self.instance_map
             .insert(mesh.identifier(), self.instances.len() - 1);
     }

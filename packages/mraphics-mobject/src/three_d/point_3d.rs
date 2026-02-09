@@ -71,7 +71,10 @@ impl Default for Point3D {
 
 impl InstanceUpdater for Point3D {
     fn update_instance(&self, instance: &mut RenderInstance) {
-        instance.move_to(&Vector3::from_column_slice(&self.center.position));
+        self.center.update_instance(instance);
+
+        self.geometry.update_view(&mut instance.geometry);
+        self.material.update_view(&mut instance.material);
     }
 }
 
@@ -79,18 +82,17 @@ impl MeshLike for Point3D {
     fn build_instance(&self) -> RenderInstance {
         let mut instance = RenderInstance::new(self.identifier, &self.material);
 
-        instance.move_to(&Vector3::from_column_slice(&self.center.position));
-
         self.geometry.init_view(&mut instance.geometry);
-
-        self.geometry.update_view(&mut instance.geometry);
-        self.material.update_view(&mut instance.material);
 
         instance
     }
 
     fn identifier(&self) -> MraphicsID {
         self.identifier
+    }
+
+    fn update(&mut self) {
+        self.geometry.update();
     }
 }
 

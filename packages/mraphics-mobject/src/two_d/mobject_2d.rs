@@ -397,8 +397,6 @@ impl MeshLike for Mobject2D {
 
         instance.add_child(stroke);
 
-        self.update_instance(&mut instance);
-
         instance
     }
 }

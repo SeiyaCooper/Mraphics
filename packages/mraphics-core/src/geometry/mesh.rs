@@ -65,7 +65,6 @@ impl<G: Geometry, M: Material> MeshLike for Mesh<G, M> {
         let mut instance = RenderInstance::new(self.identifier, &self.material);
 
         self.geometry.init_view(&mut instance.geometry);
-        self.update_instance(&mut instance);
 
         instance
     }
