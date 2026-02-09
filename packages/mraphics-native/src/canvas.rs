@@ -166,10 +166,11 @@ impl<'res, T: Timeline<'res>, C: Camera> Canvas<'res, T, C> {
     }
 
     pub fn with_mesh<Mesh: MeshLike + 'static, F: FnMut(Option<&mut Mesh>)>(
-        &self,
+        &mut self,
         mesh_handle: &MeshHandle<Mesh>,
         mut closure: F,
     ) {
+        self.mark_for_update(mesh_handle);
         closure(
             self.mesh_pool
                 .borrow_mut()
@@ -178,10 +179,11 @@ impl<'res, T: Timeline<'res>, C: Camera> Canvas<'res, T, C> {
     }
 
     pub fn with_mesh_unchecked<Mesh: MeshLike + 'static, F: FnMut(&mut Mesh)>(
-        &self,
+        &mut self,
         mesh_handle: &MeshHandle<Mesh>,
         mut closure: F,
     ) {
+        self.mark_for_update(mesh_handle);
         closure(
             self.mesh_pool
                 .borrow_mut()
@@ -377,6 +379,8 @@ impl<'res, T: Timeline<'res>, C: Camera> winit::application::ApplicationHandler
                 let window_ctx = self.window_ctx.take().unwrap();
 
                 self.timeline.forward();
+
+                self.update_meshes();
 
                 let texture = match window_ctx.surface.get_current_texture() {
                     Ok(texture) => texture,

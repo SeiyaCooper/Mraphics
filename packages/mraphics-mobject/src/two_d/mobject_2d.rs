@@ -90,7 +90,9 @@ impl Mobject2DStroke {
         );
     }
 
-    fn update_geometry_view(&self, paths: &Vec<Mobject2DPath>, view: &mut GeometryView) {
+    fn update_instance(&self, paths: &Vec<Mobject2DPath>, instance: &mut RenderInstance) {
+        let view = &mut instance.geometry;
+
         let mut vertices = Vec::new();
         let mut previous = Vec::new();
         let mut color = Vec::new();
@@ -170,7 +172,15 @@ impl Mobject2DStroke {
         )
         .unwrap();
 
-        view.indices = mraphics_core::GeometryIndices::Sequential((vertices.len() / 4) as u32);
+        let vertex_count = (vertices.len() / 4) as u32;
+
+        view.indices = mraphics_core::GeometryIndices::Sequential(vertex_count);
+
+        if vertex_count == 0 {
+            instance.visible = false;
+        } else {
+            instance.visible = true;
+        }
     }
 }
 
@@ -202,7 +212,9 @@ impl Mobject2DFill {
         );
     }
 
-    fn update_geometry_view(&self, paths: &Vec<Mobject2DPath>, view: &mut GeometryView) {
+    fn update_instance(&self, paths: &Vec<Mobject2DPath>, instance: &mut RenderInstance) {
+        let view = &mut instance.geometry;
+
         let mut vertices = Vec::new();
         let mut colors = Vec::new();
 
@@ -252,7 +264,15 @@ impl Mobject2DFill {
         )
         .unwrap();
 
-        view.indices = mraphics_core::GeometryIndices::Sequential((vertices.len() / 4) as u32);
+        let vertex_count = (vertices.len() / 4) as u32;
+
+        view.indices = mraphics_core::GeometryIndices::Sequential(vertex_count);
+
+        if vertex_count == 0 {
+            instance.visible = false;
+        } else {
+            instance.visible = true;
+        }
     }
 }
 
@@ -260,7 +280,7 @@ pub struct Mobject2D {
     identifier: MraphicsID,
 
     vertices: Vec<[f32; 3]>,
-    paths: Vec<Mobject2DPath>,
+    pub paths: Vec<Mobject2DPath>,
 
     pub stroke: Mobject2DStroke,
     pub fill: Mobject2DFill,
@@ -350,14 +370,13 @@ impl Mobject2D {
 
 impl InstanceUpdater for Mobject2D {
     fn update_instance(&self, instance: &mut RenderInstance) {
-        self.fill
-            .update_geometry_view(&self.paths, &mut instance.geometry);
+        self.fill.update_instance(&self.paths, instance);
 
         // SAFETY: `instance.children[0]` is initialized because:
         // 1. `Self::build_instance` ensures the first child exists and is properly initialized
         // 2. The `instance` structure maintains this invariant throughout its lifetime
         self.stroke
-            .update_geometry_view(&self.paths, &mut instance.children[0].geometry);
+            .update_instance(&self.paths, &mut instance.children[0]);
     }
 }
 

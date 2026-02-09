@@ -12,6 +12,7 @@ pub struct RenderInstance {
 
     pub children: Vec<RenderInstance>,
 
+    pub visible: bool,
     pub topology: PrimitiveTopology,
 
     scale: Vector3<f32>,
@@ -29,6 +30,7 @@ impl RenderInstance {
 
             children: Vec::new(),
 
+            visible: true,
             topology: PrimitiveTopology::TriangleList,
 
             scale: Vector3::new(1.0, 1.0, 1.0),

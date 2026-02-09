@@ -191,14 +191,12 @@ impl Renderer {
             render_pass: &mut wgpu::RenderPass,
             instance: &mut RenderInstance,
         ) {
-            this.render_instance(texture_format, render_pass, instance);
+            if instance.visible {
+                this.render_instance(texture_format, render_pass, instance);
+            }
 
             for mut child in &mut instance.children {
-                this.render_instance(texture_format, render_pass, &mut child);
-
-                if !child.children.is_empty() {
-                    render_recursive(this, texture_format, render_pass, &mut child);
-                }
+                render_recursive(this, texture_format, render_pass, &mut child);
             }
         }
 
