@@ -167,7 +167,7 @@ impl RotateAxisAngle {
     }
 
     pub fn new_normalize<M: MeshLike + 'static>(
-        mesh_handle: MeshHandle<M>,
+        mesh_handle: &MeshHandle<M>,
         axis: Vector3<f32>,
         angle_rad: f32,
     ) -> Self {

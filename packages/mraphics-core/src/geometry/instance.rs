@@ -57,28 +57,28 @@ impl RenderInstance {
 
     pub fn set_rotation(&mut self, rotation: &UnitQuaternion<f32>) {
         self.isometry.rotation.clone_from(rotation);
-        self.update_matrix();
+        self.update_matrix(None);
     }
 
     pub fn rotate_x(&mut self, angle_rad: f32) {
         self.isometry.rotation =
             UnitQuaternion::from_axis_angle(&UnitVector3::new_normalize(Vector3::x()), angle_rad)
                 * self.isometry.rotation;
-        self.update_matrix();
+        self.update_matrix(None);
     }
 
     pub fn rotate_y(&mut self, angle_rad: f32) {
         self.isometry.rotation =
             UnitQuaternion::from_axis_angle(&UnitVector3::new_normalize(Vector3::y()), angle_rad)
                 * self.isometry.rotation;
-        self.update_matrix();
+        self.update_matrix(None);
     }
 
     pub fn rotate_z(&mut self, angle_rad: f32) {
         self.isometry.rotation =
             UnitQuaternion::from_axis_angle(&UnitVector3::new_normalize(Vector3::z()), angle_rad)
                 * self.isometry.rotation;
-        self.update_matrix();
+        self.update_matrix(None);
     }
 
     pub fn translation(&self) -> &Translation3<f32> {
@@ -87,12 +87,12 @@ impl RenderInstance {
 
     pub fn move_to(&mut self, position: &Vector3<f32>) {
         self.isometry.translation.vector = *position;
-        self.update_matrix();
+        self.update_matrix(None);
     }
 
     pub fn move_by(&mut self, offset: &Vector3<f32>) {
         self.isometry.translation.vector += offset;
-        self.update_matrix();
+        self.update_matrix(None);
     }
 
     pub fn scale(&self) -> &Vector3<f32> {
@@ -101,12 +101,12 @@ impl RenderInstance {
 
     pub fn scale_by(&mut self, factor: &Vector3<f32>) {
         self.scale.component_mul_assign(factor);
-        self.update_matrix();
+        self.update_matrix(None);
     }
 
     pub fn scale_to(&mut self, scale: &Vector3<f32>) {
         self.scale.copy_from(scale);
-        self.update_matrix();
+        self.update_matrix(None);
     }
 
     pub fn sync_matrix_data(&mut self) {
@@ -118,9 +118,18 @@ impl RenderInstance {
             .unwrap();
     }
 
-    fn update_matrix(&mut self) {
+    fn update_matrix(&mut self, parent_matrix: Option<&Matrix4<f32>>) {
         self.matrix = self.isometry.to_homogeneous() * Matrix4::new_nonuniform_scaling(&self.scale);
+
+        if let Some(matrix) = parent_matrix {
+            self.matrix = matrix * self.matrix;
+        }
+
         self.sync_matrix_data();
+
+        for child in &mut self.children {
+            child.update_matrix(Some(&self.matrix));
+        }
     }
 }
 
