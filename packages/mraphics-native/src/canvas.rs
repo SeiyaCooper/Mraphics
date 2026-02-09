@@ -226,6 +226,7 @@ impl<'res, T: Timeline<'res>, C: Camera> Canvas<'res, T, C> {
 
     pub fn render_offscreen(&mut self) {
         self.prepare_offscreen_rendering();
+        self.update_meshes();
         self.renderer.as_mut().unwrap().render(
             self.offscreen_texture.as_mut().unwrap(),
             OFFSCREEN_TEXTURE_FORMAT,
