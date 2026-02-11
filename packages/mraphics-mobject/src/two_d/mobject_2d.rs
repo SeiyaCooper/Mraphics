@@ -2,11 +2,13 @@ use mraphics_core::{
     Color, GadgetIndex, GeometryView, InstanceUpdater, Material, MeshLike, Mobject2DMaterial,
     MraphicsID, MultiColoredMaterial, RenderInstance,
 };
+use nalgebra::{UnitVector3, Vector3};
 
 const PREVIOUS_ATTR_LABEL: &'static str = "mobject-2d-previous-attribute";
 const REVERSE_ATTR_LABEL: &'static str = "mobject-2d-reverse-attribute";
 const THICKNESS_LABEL: &'static str = "mobject-2d-thickness-uniform";
 
+#[derive(Debug)]
 pub struct Mobject2DPath {
     pub vertices: Vec<[f32; 3]>,
 
@@ -25,9 +27,9 @@ impl Mobject2DPath {
             stroked: false,
             filled: false,
 
-            // SAFETY: `BLACK` and `WHITE` are valid hex color strings defined in `crate::constants`.
+            // SAFETY: `RED` and `WHITE` are valid hex color strings defined in `crate::constants`.
             // `Color::from_hex_str` will succeed without panicking for these well-formed inputs.
-            stroke_color: Color::from_hex_str(mraphics_core::constants::BLACK).unwrap(),
+            stroke_color: Color::from_hex_str(mraphics_core::constants::RED).unwrap(),
             fill_color: Color::from_hex_str(mraphics_core::constants::WHITE).unwrap(),
         }
     }
@@ -42,8 +44,8 @@ pub struct Mobject2DStroke {
 impl Mobject2DStroke {
     fn new() -> Self {
         Self {
-            // SAFETY: `BLACK` is a valid hex color string defined in `crate::constants`.
-            color: Color::from_hex_str(mraphics_core::constants::BLACK).unwrap(),
+            // SAFETY: `RED` is a valid hex color string defined in `crate::constants`.
+            color: Color::from_hex_str(mraphics_core::constants::RED).unwrap(),
             thickness: 0.05,
             material: Mobject2DMaterial::new(),
         }
@@ -276,6 +278,45 @@ impl Mobject2DFill {
     }
 }
 
+/// Describes an arc.
+///
+/// The arc is defined on a plane spanned by `x_axis` and `y_axis`.
+/// The arc spans from `start_rad` to `end_rad` radians,
+/// with direction controlled by `clockwise`.
+/// The path is discretized into `segment_num` line segments.
+pub struct Mobject2DArcDescriptor {
+    pub radius: f32,
+    pub start_rad: f32,
+    pub end_rad: f32,
+    pub clockwise: bool,
+    pub segment_num: u32,
+
+    pub center: [f32; 3],
+
+    /// Local X-axis of the arc's plane, defining 0 radians direction.
+    pub x_axis: UnitVector3<f32>,
+
+    /// Local Y-axis of the arc's plane.
+    pub y_axis: UnitVector3<f32>,
+}
+
+impl Default for Mobject2DArcDescriptor {
+    fn default() -> Self {
+        Self {
+            radius: 1.0,
+            start_rad: 0.0,
+            end_rad: std::f32::consts::PI,
+            clockwise: false,
+            segment_num: 25,
+
+            center: [0.0, 0.0, 0.0],
+
+            x_axis: UnitVector3::new_normalize(Vector3::x()),
+            y_axis: UnitVector3::new_normalize(Vector3::y()),
+        }
+    }
+}
+
 pub struct Mobject2D {
     identifier: MraphicsID,
 
@@ -317,6 +358,53 @@ impl Mobject2D {
     /// this operation will behave like [`Self::move_to`].
     pub fn line_to(&mut self, point: [f32; 3]) {
         self.vertices.push(point);
+    }
+
+    /// Draws an arc.
+    ///
+    /// This operation ends the previous path (if any) and inserts the arc.
+    ///
+    /// # Arguments
+    /// - desc: Arc specification. See [`Mobject2DArcDescriptor`] for details.
+    pub fn arc(&mut self, desc: &Mobject2DArcDescriptor) {
+        self.finish();
+
+        let &Mobject2DArcDescriptor {
+            radius,
+            mut start_rad,
+            mut end_rad,
+            mut clockwise,
+            segment_num,
+            center,
+            x_axis,
+            y_axis,
+        } = desc;
+
+        if radius == 0.0 || start_rad == end_rad {
+            return;
+        }
+
+        let center = Vector3::from_column_slice(&center);
+
+        if start_rad > end_rad {
+            start_rad = end_rad;
+            end_rad = desc.start_rad;
+            clockwise = !clockwise;
+        }
+
+        let unit = if clockwise {
+            (end_rad - start_rad - std::f32::consts::PI * 2.0) / segment_num as f32
+        } else {
+            (end_rad - start_rad) / segment_num as f32
+        };
+
+        let (x_axis, y_axis) = (x_axis.into_inner(), y_axis.into_inner());
+
+        for i in 0..=segment_num {
+            let angle = start_rad + i as f32 * unit;
+            let position = center + x_axis * angle.cos() * radius + y_axis * angle.sin() * radius;
+            self.vertices.push([position[0], position[1], position[2]]);
+        }
     }
 
     /// Strokes the most recently drawn path.
