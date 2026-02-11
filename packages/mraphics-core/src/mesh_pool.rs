@@ -1,7 +1,7 @@
 use crate::{MeshHandle, MeshLike, MraphicsID, RenderInstance};
 use std::{any::TypeId, collections::HashMap, mem, ptr};
 
-/// A type-erased container for storing any type that implements `MeshLike`.
+/// A type-erased container for storing any type that implements [`MeshLike`].
 ///
 /// Similar to [`Box<dyn Any>`].
 pub struct MeshBox {

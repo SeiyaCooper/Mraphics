@@ -3,7 +3,7 @@ use crate::Material;
 /// Material used for rendering [`Mobject2DStroke`] objects.
 ///
 /// # Camera Compatibility
-/// This material is specifically designed to work with [`PerspectiveCamera`].
+/// This material is specifically designed to work with [`crate::PerspectiveCamera`].
 /// Using it with other camera types will result in incorrect rendering.
 #[derive(Clone)]
 pub struct Mobject2DMaterial {}
