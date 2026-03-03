@@ -1,6 +1,7 @@
 use mraphics_core::{
-    Color, GadgetIndex, GeometryView, InstanceUpdater, Material, MeshLike, Mobject2DMaterial,
-    MraphicsID, MultiColoredMaterial, RenderInstance,
+    Color, GadgetIndex, GeometryView, InstanceUpdater, Interpolatable, Material, MeshLike,
+    Mobject2DMaterial, MraphicsID, MultiColoredMaterial, RenderInstance, Representable,
+    Transformable,
 };
 use nalgebra::{UnitVector3, Vector3};
 
@@ -8,7 +9,7 @@ const PREVIOUS_ATTR_LABEL: &'static str = "mobject-2d-previous-attribute";
 const REVERSE_ATTR_LABEL: &'static str = "mobject-2d-reverse-attribute";
 const THICKNESS_LABEL: &'static str = "mobject-2d-thickness-uniform";
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Mobject2DPath {
     pub vertices: Vec<[f32; 3]>,
 
@@ -35,6 +36,7 @@ impl Mobject2DPath {
     }
 }
 
+#[derive(Clone)]
 pub struct Mobject2DStroke {
     pub color: Color<f32>,
     pub thickness: f32,
@@ -186,6 +188,7 @@ impl Mobject2DStroke {
     }
 }
 
+#[derive(Clone)]
 pub struct Mobject2DFill {
     pub color: Color<f32>,
     material: MultiColoredMaterial,
@@ -317,6 +320,7 @@ impl Default for Mobject2DArcDescriptor {
     }
 }
 
+#[derive(Clone)]
 pub struct Mobject2D {
     identifier: MraphicsID,
 
@@ -486,5 +490,50 @@ impl MeshLike for Mobject2D {
         instance.add_child(stroke);
 
         instance
+    }
+}
+
+impl Representable for Mobject2D {
+    type Intermediate = Mobject2D;
+
+    fn as_intermediate(&self) -> Self::Intermediate {
+        self.clone()
+    }
+
+    fn update_from_intermediate(&mut self, repr: &Self::Intermediate) {
+        self.clone_from(repr);
+    }
+}
+
+impl Interpolatable for Mobject2DPath {
+    fn interpolate(&self, to: &Self, p: f32) -> Self {
+        let mut out = self.clone();
+        out.vertices = self.vertices.interpolate(&to.vertices, p);
+        out
+    }
+}
+
+impl Interpolatable for Mobject2D {
+    fn interpolate(&self, to: &Self, p: f32) -> Self {
+        let mut out = self.clone();
+        out.paths = self.paths.interpolate(&to.paths, p);
+        out
+    }
+}
+
+impl Transformable for Mobject2D {
+    fn apply_transform<Trans: Fn(&[f32; 3]) -> [f32; 3]>(
+        &self,
+        transform: Trans,
+    ) -> Self::Intermediate {
+        let mut out = self.clone();
+
+        out.paths.iter_mut().for_each(|path| {
+            path.vertices
+                .iter_mut()
+                .for_each(|vertex| *vertex = transform(vertex));
+        });
+
+        out
     }
 }
