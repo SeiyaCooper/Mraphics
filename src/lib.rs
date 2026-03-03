@@ -1,3 +1,5 @@
+//! A rendering engine for exploring intuitive math, inspired by [Manim](https://github.com/3b1b/manim/)
+
 pub use mraphics_core::*;
 
 pub use mraphics_mobject::*;
