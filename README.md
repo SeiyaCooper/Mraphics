@@ -22,7 +22,7 @@ A rendering engine for exploring interactive and intuitive math, inspired by Man
 You can install Mraphics from crates.io:
 ```toml
 [dependencies]
-mraphics = "0.0.2"
+mraphics = "0.0.3"
 ```
 
 Alternatively, you can install from the latest git commit:
