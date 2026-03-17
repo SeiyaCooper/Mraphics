@@ -20,7 +20,7 @@ const OFFSCREEN_TEXTURE_FORMAT: TextureFormat = wgpu::TextureFormat::Rgba8Unorm;
 pub struct Canvas<'res, T: Timeline<'res>, C: Camera> {
     window_ctx: Option<WindowContext>,
 
-    pub size: (u32, u32),
+    size: (u32, u32),
 
     pub(crate) renderer: Option<Renderer>,
 
@@ -189,6 +189,10 @@ impl<'res, T: Timeline<'res>, C: Camera> Canvas<'res, T, C> {
                 .borrow_mut()
                 .acquire_mesh_mut_unchecked::<Mesh>(mesh_handle.identifier()),
         )
+    }
+
+    pub fn size(&self) -> (u32, u32) {
+        self.size
     }
 
     pub fn resize(&mut self, size: (u32, u32)) {

@@ -46,7 +46,7 @@ impl<'canvas> Recorder<'canvas> {
         command.stdin(Stdio::piped()).args([
             "-y",
             "-f", "rawvideo",
-            "-s", &format!("{}x{}", canvas.size.0, canvas.size.1),
+            "-s", &format!("{}x{}", canvas.size().0, canvas.size().1),
             "-pix_fmt", "rgba",
             "-r", &self.timeline.logical_fps.to_string(),
             "-i", "-",
@@ -81,7 +81,7 @@ impl<'canvas> Recorder<'canvas> {
                 .renderer
                 .as_ref()
                 .unwrap()
-                .read_texture_rgbau8(canvas.offscreen_texture.as_ref().unwrap(), canvas.size);
+                .read_texture_rgbau8(canvas.offscreen_texture.as_ref().unwrap(), canvas.size());
 
             process.stdin.as_mut().unwrap().write_all(&raw_img).unwrap();
         });
