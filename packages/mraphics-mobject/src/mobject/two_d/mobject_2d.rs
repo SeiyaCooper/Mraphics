@@ -30,8 +30,8 @@ impl Mobject2DPath {
 
             // SAFETY: `RED` and `WHITE` are valid hex color strings defined in `crate::constants`.
             // `Color::from_hex_str` will succeed without panicking for these well-formed inputs.
-            stroke_color: Color::from_hex_str(mraphics_core::constants::RED).unwrap(),
-            fill_color: Color::from_hex_str(mraphics_core::constants::WHITE).unwrap(),
+            stroke_color: Color::from_hex_str(mraphics_core::constant::RED).unwrap(),
+            fill_color: Color::from_hex_str(mraphics_core::constant::WHITE).unwrap(),
         }
     }
 }
@@ -47,7 +47,7 @@ impl Mobject2DStroke {
     fn new() -> Self {
         Self {
             // SAFETY: `RED` is a valid hex color string defined in `crate::constants`.
-            color: Color::from_hex_str(mraphics_core::constants::RED).unwrap(),
+            color: Color::from_hex_str(mraphics_core::constant::RED).unwrap(),
             thickness: 0.05,
             material: Mobject2DMaterial::new(),
         }
@@ -55,8 +55,8 @@ impl Mobject2DStroke {
 
     fn init_geometry_view(&self, view: &mut GeometryView) {
         view.add_attribute(
-            mraphics_core::constants::POSITION_ATTR_LABEL,
-            mraphics_core::constants::POSITION_ATTR_INDEX,
+            mraphics_core::constant::POSITION_ATTR_LABEL,
+            mraphics_core::constant::POSITION_ATTR_INDEX,
             vec![],
         );
 
@@ -79,8 +79,8 @@ impl Mobject2DStroke {
         );
 
         view.add_attribute(
-            mraphics_core::constants::COLOR_ATTR_LABEL,
-            mraphics_core::constants::COLOR_ATTR_INDEX,
+            mraphics_core::constant::COLOR_ATTR_LABEL,
+            mraphics_core::constant::COLOR_ATTR_INDEX,
             vec![],
         );
 
@@ -151,7 +151,7 @@ impl Mobject2DStroke {
 
         // SAFETY: These attributes exist because we initialized them in `Self::init_geometry_view`
         view.set_attribute(
-            mraphics_core::constants::POSITION_ATTR_LABEL,
+            mraphics_core::constant::POSITION_ATTR_LABEL,
             Vec::from(bytemuck::cast_slice::<f32, u8>(&vertices)),
         )
         .unwrap();
@@ -166,7 +166,7 @@ impl Mobject2DStroke {
         )
         .unwrap();
         view.set_attribute(
-            mraphics_core::constants::COLOR_ATTR_LABEL,
+            mraphics_core::constant::COLOR_ATTR_LABEL,
             Vec::from(bytemuck::cast_slice::<f32, u8>(&color)),
         )
         .unwrap();
@@ -198,7 +198,7 @@ impl Mobject2DFill {
     fn new() -> Self {
         Self {
             // SAFETY: `WHITE` is a valid hex color string defined in `crate::constants`.
-            color: Color::from_hex_str(mraphics_core::constants::WHITE).unwrap(),
+            color: Color::from_hex_str(mraphics_core::constant::WHITE).unwrap(),
 
             material: MultiColoredMaterial::new(),
         }
@@ -206,13 +206,13 @@ impl Mobject2DFill {
 
     fn init_geometry_view(&self, view: &mut GeometryView) {
         view.add_attribute(
-            mraphics_core::constants::POSITION_ATTR_LABEL,
-            mraphics_core::constants::POSITION_ATTR_INDEX,
+            mraphics_core::constant::POSITION_ATTR_LABEL,
+            mraphics_core::constant::POSITION_ATTR_INDEX,
             vec![],
         );
         view.add_attribute(
-            mraphics_core::constants::COLOR_ATTR_LABEL,
-            mraphics_core::constants::COLOR_ATTR_INDEX,
+            mraphics_core::constant::COLOR_ATTR_LABEL,
+            mraphics_core::constant::COLOR_ATTR_INDEX,
             vec![],
         );
     }
@@ -259,12 +259,12 @@ impl Mobject2DFill {
 
         // SAFETY: These attributes exist because we initialized them in `Self::init_geometry_view`
         view.set_attribute(
-            mraphics_core::constants::POSITION_ATTR_LABEL,
+            mraphics_core::constant::POSITION_ATTR_LABEL,
             Vec::from(bytemuck::cast_slice::<f32, u8>(&vertices)),
         )
         .unwrap();
         view.set_attribute(
-            mraphics_core::constants::COLOR_ATTR_LABEL,
+            mraphics_core::constant::COLOR_ATTR_LABEL,
             Vec::from(bytemuck::cast_slice::<f32, u8>(&colors)),
         )
         .unwrap();

@@ -1,4 +1,4 @@
-use crate::Material;
+use mraphics_core::Material;
 
 /// Material used for rendering [`Mobject2DStroke`] objects.
 ///

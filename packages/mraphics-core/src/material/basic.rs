@@ -14,7 +14,7 @@ pub struct BasicMaterial {
 impl BasicMaterial {
     pub fn new() -> Self {
         Self {
-            color: Color::from_hex_str(crate::constants::SEIYA_PINK).unwrap(),
+            color: Color::from_hex_str(crate::constant::SEIYA_PINK).unwrap(),
         }
     }
 

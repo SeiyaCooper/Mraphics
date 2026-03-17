@@ -1,4 +1,4 @@
-use crate::{RenderInstance, constants::PrimitiveTopology};
+use crate::{RenderInstance, constant::PrimitiveTopology};
 use std::collections::HashMap;
 
 pub struct PipelineManager {

@@ -1,4 +1,4 @@
-use crate::{GadgetData, GadgetIndex, InstanceUpdater, Interpolatable, constants};
+use crate::{GadgetData, GadgetIndex, InstanceUpdater, Interpolatable, constant};
 use nalgebra::Matrix4;
 use std::collections::HashMap;
 
@@ -68,8 +68,8 @@ impl GeometryView {
         };
 
         out.add_uniform(
-            constants::MODEL_MAT_LABEL,
-            constants::MODEL_MAT_INDEX,
+            constant::MODEL_MAT_LABEL,
+            constant::MODEL_MAT_INDEX,
             bytemuck::cast_slice(Matrix4::<f32>::identity().as_slice()).to_vec(),
         );
 
@@ -250,7 +250,7 @@ impl Vertices {
         }
 
         view.set_attribute(
-            crate::constants::POSITION_ATTR_LABEL,
+            crate::constant::POSITION_ATTR_LABEL,
             Vec::from(bytemuck::cast_slice::<f32, u8>(&vertices)),
         )
         .unwrap();
@@ -278,8 +278,8 @@ impl InstanceUpdater for Vertices {
 impl Geometry for Vertices {
     fn init_view(&self, view: &mut GeometryView) {
         view.add_attribute(
-            crate::constants::POSITION_ATTR_LABEL,
-            crate::constants::POSITION_ATTR_INDEX,
+            crate::constant::POSITION_ATTR_LABEL,
+            crate::constant::POSITION_ATTR_INDEX,
             bytemuck::cast_slice::<f32, u8>(&self.data.concat()).to_vec(),
         );
     }

@@ -51,4 +51,4 @@ pub use animation::*;
 mod traits;
 pub use traits::*;
 
-pub mod constants;
+pub mod constant;

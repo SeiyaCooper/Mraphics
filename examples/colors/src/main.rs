@@ -1,5 +1,5 @@
 use mraphics::{
-    BasicMaterial, Canvas, Color, LogicalTimeline, PerspectiveCamera, Point3D, constants::*,
+    BasicMaterial, Canvas, Color, LogicalTimeline, PerspectiveCamera, Point3D, constant::*,
 };
 
 fn main() {

@@ -34,6 +34,7 @@ bytemuck = "1.24.0"
 num-traits = "0.2.19"
 pollster = "0.3"
 image = "0.25.9"
+usvg = "0.47.0"
 
 [features]
 default = ["native", "control", "wasm"]

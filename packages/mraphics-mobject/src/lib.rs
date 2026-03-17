@@ -1,5 +1,8 @@
-mod three_d;
-pub use three_d::*;
+mod mobject;
+pub use mobject::*;
 
-mod two_d;
-pub use two_d::*;
+mod material;
+pub use material::*;
+
+mod svg;
+pub use svg::*;

@@ -16,3 +16,4 @@ wasm-bindgen = { workspace = true, optional = true }
 mraphics-core = { workspace = true }
 nalgebra = { workspace = true }
 bytemuck = { workspace = true }
+usvg = { workspace = true }

@@ -45,8 +45,8 @@ impl Default for Sphere {
 impl Geometry for Sphere {
     fn init_view(&self, view: &mut super::GeometryView) {
         view.add_attribute(
-            crate::constants::POSITION_ATTR_LABEL,
-            crate::constants::POSITION_ATTR_INDEX,
+            crate::constant::POSITION_ATTR_LABEL,
+            crate::constant::POSITION_ATTR_INDEX,
             Vec::<u8>::new(),
         );
     }
@@ -54,7 +54,7 @@ impl Geometry for Sphere {
     fn update_view(&self, view: &mut super::GeometryView) {
         self.vertices.update_geometry_view(view);
 
-        view.get_attribute_mut(crate::constants::POSITION_ATTR_LABEL)
+        view.get_attribute_mut(crate::constant::POSITION_ATTR_LABEL)
             .unwrap()
             .needs_update_buffer = true;
         view.indices = GeometryIndices::CustomU16(CustomIndices::new((&self.indices).to_owned()));

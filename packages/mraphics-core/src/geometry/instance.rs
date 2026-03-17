@@ -1,6 +1,6 @@
 use crate::{
     GeometryView, Material, MaterialView, MraphicsID,
-    constants::{MODEL_MAT_LABEL, PrimitiveTopology},
+    constant::{MODEL_MAT_LABEL, PrimitiveTopology},
 };
 use nalgebra::{Isometry3, Matrix4, Translation3, UnitQuaternion, UnitVector3, Vector3};
 

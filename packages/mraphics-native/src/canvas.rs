@@ -76,7 +76,7 @@ impl<'res, T: Timeline<'res>, C: Camera> Canvas<'res, T, C> {
             mesh_pool: Rc::new(RefCell::new(MeshPool::new())),
             update_flags: HashMap::new(),
 
-            clear_color: Color::from_hex_str(mraphics_core::constants::GRAY_E).unwrap(),
+            clear_color: Color::from_hex_str(mraphics_core::constant::GRAY_E).unwrap(),
 
             _marker: PhantomData,
         }
