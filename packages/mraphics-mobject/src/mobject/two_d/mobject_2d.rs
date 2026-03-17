@@ -1,7 +1,7 @@
+use crate::Mobject2DMaterial;
 use mraphics_core::{
     Color, GadgetIndex, GeometryView, InstanceUpdater, Interpolatable, Material, MeshLike,
-    Mobject2DMaterial, MraphicsID, MultiColoredMaterial, RenderInstance, Representable,
-    Transformable,
+    MraphicsID, MultiColoredMaterial, RenderInstance, Representable, Transformable,
 };
 use nalgebra::{UnitVector3, Vector3};
 
