@@ -1,27 +1,23 @@
-use crate::render::GadgetData;
+use crate::{RenderProcess, render::GadgetData};
 
-#[derive(Debug)]
 pub struct MaterialView {
     pub identifier: String,
-    pub shader_code: String,
+
+    pub render_process: RenderProcess,
 
     pub uniforms: Vec<GadgetData>,
-    pub attributes: Vec<GadgetData>,
+    pub storages: Vec<GadgetData>,
 }
 
 impl MaterialView {
-    pub fn new(identifier: &str) -> Self {
+    pub fn new(identifier: &str, render_process: RenderProcess) -> Self {
         Self {
             identifier: identifier.to_string(),
-            shader_code: String::new(),
-            uniforms: Vec::new(),
-            attributes: Vec::new(),
-        }
-    }
 
-    pub fn with_code(mut self, code: String) -> Self {
-        self.shader_code = code;
-        self
+            render_process,
+            uniforms: Vec::new(),
+            storages: Vec::new(),
+        }
     }
 
     pub fn with_uniforms(mut self, uniforms: Vec<GadgetData>) -> Self {
@@ -29,14 +25,25 @@ impl MaterialView {
         self
     }
 
-    pub fn with_attributes(mut self, attributes: Vec<GadgetData>) -> Self {
-        self.attributes = attributes;
+    pub fn with_storages(mut self, storages: Vec<GadgetData>) -> Self {
+        self.storages = storages;
         self
     }
 
     pub fn reset(&mut self) {
         self.uniforms = Vec::new();
-        self.attributes = Vec::new();
+        self.storages = Vec::new();
+    }
+}
+
+impl Default for MaterialView {
+    fn default() -> Self {
+        Self {
+            identifier: String::from("mraphics default materila view"),
+            render_process: RenderProcess::new(),
+            uniforms: Vec::new(),
+            storages: Vec::new(),
+        }
     }
 }
 

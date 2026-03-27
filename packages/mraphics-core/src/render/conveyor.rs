@@ -126,7 +126,7 @@ impl Conveyor {
 
                 bind_group_layout_entries.push(wgpu::BindGroupLayoutEntry {
                     binding: *binding_index,
-                    visibility: wgpu::ShaderStages::VERTEX_FRAGMENT, // Hard coded currently
+                    visibility: wgpu::ShaderStages::all(), // Hard coded currently
                     ty: wgpu::BindingType::Buffer {
                         ty: gadget.ty,
                         has_dynamic_offset: false,

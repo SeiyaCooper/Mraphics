@@ -1,59 +1,66 @@
-use crate::{RenderInstance, constant::PrimitiveTopology};
+use crate::{Pass, RenderInstance, constant::PrimitiveTopology};
 use std::collections::HashMap;
 
 pub struct PipelineManager {
-    pub pipeline_pool: HashMap<String, wgpu::RenderPipeline>,
+    pub render_pipelines: HashMap<String, wgpu::RenderPipeline>,
+    pub compute_pipelines: HashMap<String, wgpu::ComputePipeline>,
 }
 
 impl PipelineManager {
     pub fn new() -> Self {
         Self {
-            pipeline_pool: HashMap::new(),
+            render_pipelines: HashMap::new(),
+            compute_pipelines: HashMap::new(),
         }
     }
 
-    pub fn acquire_pipeline(
+    pub fn acquire_render_pipeline(
         &mut self,
         device: &wgpu::Device,
         texture_format: wgpu::TextureFormat,
         instance: &RenderInstance,
+        render_pass: &Pass,
+        pass_index: usize,
         bind_groups: &[&wgpu::BindGroupLayout],
         force_update: bool,
     ) -> &wgpu::RenderPipeline {
         let pipeline_identifier = format!(
-            "{}{}",
+            "{}{}{}",
             &instance.material.identifier,
-            instance.topology.to_str()
+            instance.topology.to_str(),
+            pass_index
         );
 
-        if !self.pipeline_pool.contains_key(&pipeline_identifier) || force_update {
-            self.insert_pipeline(
+        if !self.render_pipelines.contains_key(&pipeline_identifier) || force_update {
+            self.insert_render_pipeline(
                 device,
                 texture_format,
                 instance,
+                render_pass,
                 bind_groups,
                 &pipeline_identifier,
             );
         }
 
         // SAFETY: Checked upon
-        &self.pipeline_pool.get(&pipeline_identifier).unwrap()
+        &self.render_pipelines.get(&pipeline_identifier).unwrap()
     }
 
-    pub fn insert_pipeline(
+    pub fn insert_render_pipeline(
         &mut self,
         device: &wgpu::Device,
         texture_format: wgpu::TextureFormat,
         instance: &RenderInstance,
+        render_pass: &Pass,
         bind_groups: &[&wgpu::BindGroupLayout],
         pipeline_identifier: &String,
     ) {
-        self.pipeline_pool.insert(
+        self.render_pipelines.insert(
             String::from(pipeline_identifier),
             PipelineManager::build_pipeline(
                 device,
                 texture_format,
-                instance,
+                render_pass,
                 bind_groups,
                 instance.topology,
             ),
@@ -63,13 +70,13 @@ impl PipelineManager {
     pub fn build_pipeline(
         device: &wgpu::Device,
         texture_format: wgpu::TextureFormat,
-        instance: &RenderInstance,
+        render_pass: &Pass,
         bind_groups: &[&wgpu::BindGroupLayout],
         topology: PrimitiveTopology,
     ) -> wgpu::RenderPipeline {
         let shader_module = device.create_shader_module(wgpu::ShaderModuleDescriptor {
             label: Some("Mraphics Shader"),
-            source: wgpu::ShaderSource::Wgsl((&instance.material.shader_code).into()),
+            source: wgpu::ShaderSource::Wgsl((&render_pass.shader_code).into()),
         });
 
         let render_pipeline_layout =
@@ -79,7 +86,7 @@ impl PipelineManager {
                 push_constant_ranges: &[],
             });
 
-        let render_pipeline = device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
+        device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
             label: Some("Mraphics Render Pipeline"),
             layout: Some(&render_pipeline_layout),
             vertex: wgpu::VertexState {
@@ -111,8 +118,6 @@ impl PipelineManager {
             multisample: wgpu::MultisampleState::default(),
             multiview: None,
             cache: None,
-        });
-
-        render_pipeline
+        })
     }
 }

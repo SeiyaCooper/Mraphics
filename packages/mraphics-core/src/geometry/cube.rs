@@ -30,9 +30,9 @@ impl Default for Cube {
 
 impl Geometry for Cube {
     fn init_view(&self, view: &mut super::GeometryView) {
-        view.add_attribute(
-            crate::constant::POSITION_ATTR_LABEL,
-            crate::constant::POSITION_ATTR_INDEX,
+        view.add_storage(
+            crate::constant::POSITION_STORAGE_LABEL,
+            crate::constant::POSITION_STORAGE_INDEX,
             bytemuck::cast_slice::<f32, u8>(&self.vertices.data.concat()).to_vec(),
         );
     }

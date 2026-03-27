@@ -33,21 +33,27 @@ pub enum GeometryViewError {
 
 /// A view of geometric data that can be consumed by shaders.
 ///
-/// This struct represents a collection of attributes, uniforms, and indices
+/// This struct represents a collection of storage variables, uniforms, and indices
 /// that define a geometry.
 #[derive(Debug)]
 pub struct GeometryView {
-    /// Vertex attributes of the geometry (e.g., position, normal, color).
-    pub attributes: Vec<GadgetData>,
+    /// Storage variables of the geometry (e.g., position, normal, color).
+    /// We use storage buffers to replace attribute buffers in Mraphics (currently?).
+    ///
+    /// # Note
+    ///
+    /// The name `storages` may seem wrong grammatically since `storage` is uncountable,
+    /// but it is kept for brevity and consistency with naming conventions (e.g., `attributes` and `uniforms`).
+    pub storages: Vec<GadgetData>,
 
-    /// Maps attribute labels to their indices in [`Self::attributes`].
-    /// Used for querying a attribute by its label.
-    attribute_map: HashMap<String, usize>,
+    /// Maps storage variables' labels to their indices in [`Self::storages`].
+    /// Used for querying a storage variable by its label.
+    storage_map: HashMap<String, usize>,
 
     /// Uniform variables of the geometry.
     pub uniforms: Vec<GadgetData>,
 
-    /// Maps uniform labels to their indices in [`Self::uniforms`].
+    /// Maps uniform variables' labels to their indices in [`Self::uniforms`].
     /// Used for querying a uniform by its label.
     uniform_map: HashMap<String, usize>,
 
@@ -60,8 +66,8 @@ impl GeometryView {
         let mut out = Self {
             indices: GeometryIndices::Sequential(0),
 
-            attributes: Vec::new(),
-            attribute_map: HashMap::new(),
+            storages: Vec::new(),
+            storage_map: HashMap::new(),
 
             uniforms: Vec::new(),
             uniform_map: HashMap::new(),
@@ -81,8 +87,8 @@ impl GeometryView {
         self
     }
 
-    pub fn with_attributes(mut self, attributes: Vec<GadgetData>) -> Self {
-        self.attributes = attributes;
+    pub fn with_storages(mut self, storages: Vec<GadgetData>) -> Self {
+        self.storages = storages;
         self
     }
 
@@ -91,8 +97,8 @@ impl GeometryView {
         self
     }
 
-    pub fn add_attribute(&mut self, label: &str, index: GadgetIndex, data: Vec<u8>) {
-        let attribute = GadgetData {
+    pub fn add_storage(&mut self, label: &str, index: GadgetIndex, data: Vec<u8>) {
+        let storage = GadgetData {
             label: label.to_string(),
             index,
             data,
@@ -100,38 +106,38 @@ impl GeometryView {
             needs_update_buffer: true,
         };
 
-        self.attribute_map
-            .insert(attribute.label.clone(), self.attributes.len());
-        self.attributes.push(attribute);
+        self.storage_map
+            .insert(storage.label.clone(), self.storages.len());
+        self.storages.push(storage);
     }
 
-    pub fn get_attribute(&self, label: &str) -> Result<&GadgetData, GeometryViewError> {
-        if let Some(index) = self.attribute_map.get(label) {
-            let attribute = &self.attributes[*index];
-            return Ok(attribute);
+    pub fn get_storage(&self, label: &str) -> Result<&GadgetData, GeometryViewError> {
+        if let Some(index) = self.storage_map.get(label) {
+            let storage = &self.storages[*index];
+            return Ok(storage);
         }
 
         Err(GeometryViewError::UnknownAttributeLabel)
     }
 
-    pub fn get_attribute_mut(&mut self, label: &str) -> Result<&mut GadgetData, GeometryViewError> {
-        if let Some(index) = self.attribute_map.get(label) {
-            let attribute = &mut self.attributes[*index];
-            return Ok(attribute);
+    pub fn get_storage_mut(&mut self, label: &str) -> Result<&mut GadgetData, GeometryViewError> {
+        if let Some(index) = self.storage_map.get(label) {
+            let storage = &mut self.storages[*index];
+            return Ok(storage);
         }
 
         Err(GeometryViewError::UnknownAttributeLabel)
     }
 
-    pub fn set_attribute(&mut self, label: &str, data: Vec<u8>) -> Result<(), GeometryViewError> {
-        let attribute = self.get_attribute_mut(label)?;
+    pub fn set_storage(&mut self, label: &str, data: Vec<u8>) -> Result<(), GeometryViewError> {
+        let storage = self.get_storage_mut(label)?;
 
-        if attribute.data.len() != data.len() {
-            attribute.needs_update_buffer = true;
+        if storage.data.len() != data.len() {
+            storage.needs_update_buffer = true;
         }
 
-        attribute.data = data;
-        attribute.needs_update_value = true;
+        storage.data = data;
+        storage.needs_update_value = true;
 
         Ok(())
     }
@@ -182,8 +188,8 @@ impl GeometryView {
     }
 
     pub fn reset_vertices(&mut self) {
-        self.attributes = Vec::new();
-        self.attribute_map = HashMap::new();
+        self.storages = Vec::new();
+        self.storage_map = HashMap::new();
         self.indices = GeometryIndices::Sequential(0);
     }
 
@@ -249,8 +255,8 @@ impl Vertices {
             vertices.push(vertex[3]);
         }
 
-        view.set_attribute(
-            crate::constant::POSITION_ATTR_LABEL,
+        view.set_storage(
+            crate::constant::POSITION_STORAGE_LABEL,
             Vec::from(bytemuck::cast_slice::<f32, u8>(&vertices)),
         )
         .unwrap();
@@ -277,9 +283,9 @@ impl InstanceUpdater for Vertices {
 
 impl Geometry for Vertices {
     fn init_view(&self, view: &mut GeometryView) {
-        view.add_attribute(
-            crate::constant::POSITION_ATTR_LABEL,
-            crate::constant::POSITION_ATTR_INDEX,
+        view.add_storage(
+            crate::constant::POSITION_STORAGE_LABEL,
+            crate::constant::POSITION_STORAGE_INDEX,
             bytemuck::cast_slice::<f32, u8>(&self.data.concat()).to_vec(),
         );
     }

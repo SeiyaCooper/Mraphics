@@ -5,8 +5,8 @@ use mraphics_core::{
 };
 use nalgebra::{UnitVector3, Vector3};
 
-const PREVIOUS_ATTR_LABEL: &'static str = "mobject-2d-previous-attribute";
-const REVERSE_ATTR_LABEL: &'static str = "mobject-2d-reverse-attribute";
+const PREVIOUS_STORAGE_LABEL: &'static str = "mobject-2d-previous-storage";
+const REVERSE_STORAGE_LABEL: &'static str = "mobject-2d-reverse-storage";
 const THICKNESS_LABEL: &'static str = "mobject-2d-thickness-uniform";
 
 #[derive(Debug, Clone)]
@@ -54,14 +54,14 @@ impl Mobject2DStroke {
     }
 
     fn init_geometry_view(&self, view: &mut GeometryView) {
-        view.add_attribute(
-            mraphics_core::constant::POSITION_ATTR_LABEL,
-            mraphics_core::constant::POSITION_ATTR_INDEX,
+        view.add_storage(
+            mraphics_core::constant::POSITION_STORAGE_LABEL,
+            mraphics_core::constant::POSITION_STORAGE_INDEX,
             vec![],
         );
 
-        view.add_attribute(
-            PREVIOUS_ATTR_LABEL,
+        view.add_storage(
+            PREVIOUS_STORAGE_LABEL,
             GadgetIndex {
                 group_index: 1,
                 binding_index: 3,
@@ -69,8 +69,8 @@ impl Mobject2DStroke {
             vec![],
         );
 
-        view.add_attribute(
-            REVERSE_ATTR_LABEL,
+        view.add_storage(
+            REVERSE_STORAGE_LABEL,
             GadgetIndex {
                 group_index: 1,
                 binding_index: 4,
@@ -78,9 +78,9 @@ impl Mobject2DStroke {
             vec![],
         );
 
-        view.add_attribute(
-            mraphics_core::constant::COLOR_ATTR_LABEL,
-            mraphics_core::constant::COLOR_ATTR_INDEX,
+        view.add_storage(
+            mraphics_core::constant::COLOR_STORAGE_LABEL,
+            mraphics_core::constant::COLOR_STORAGE_INDEX,
             vec![],
         );
 
@@ -149,24 +149,24 @@ impl Mobject2DStroke {
             }
         }
 
-        // SAFETY: These attributes exist because we initialized them in `Self::init_geometry_view`
-        view.set_attribute(
-            mraphics_core::constant::POSITION_ATTR_LABEL,
+        // SAFETY: These storage varibales exist because we initialized them in `Self::init_geometry_view`
+        view.set_storage(
+            mraphics_core::constant::POSITION_STORAGE_LABEL,
             Vec::from(bytemuck::cast_slice::<f32, u8>(&vertices)),
         )
         .unwrap();
-        view.set_attribute(
-            PREVIOUS_ATTR_LABEL,
+        view.set_storage(
+            PREVIOUS_STORAGE_LABEL,
             Vec::from(bytemuck::cast_slice::<f32, u8>(&previous)),
         )
         .unwrap();
-        view.set_attribute(
-            REVERSE_ATTR_LABEL,
+        view.set_storage(
+            REVERSE_STORAGE_LABEL,
             Vec::from(bytemuck::cast_slice::<f32, u8>(&reverse)),
         )
         .unwrap();
-        view.set_attribute(
-            mraphics_core::constant::COLOR_ATTR_LABEL,
+        view.set_storage(
+            mraphics_core::constant::COLOR_STORAGE_LABEL,
             Vec::from(bytemuck::cast_slice::<f32, u8>(&color)),
         )
         .unwrap();
@@ -205,14 +205,14 @@ impl Mobject2DFill {
     }
 
     fn init_geometry_view(&self, view: &mut GeometryView) {
-        view.add_attribute(
-            mraphics_core::constant::POSITION_ATTR_LABEL,
-            mraphics_core::constant::POSITION_ATTR_INDEX,
+        view.add_storage(
+            mraphics_core::constant::POSITION_STORAGE_LABEL,
+            mraphics_core::constant::POSITION_STORAGE_INDEX,
             vec![],
         );
-        view.add_attribute(
-            mraphics_core::constant::COLOR_ATTR_LABEL,
-            mraphics_core::constant::COLOR_ATTR_INDEX,
+        view.add_storage(
+            mraphics_core::constant::COLOR_STORAGE_LABEL,
+            mraphics_core::constant::COLOR_STORAGE_INDEX,
             vec![],
         );
     }
@@ -257,14 +257,14 @@ impl Mobject2DFill {
             }
         }
 
-        // SAFETY: These attributes exist because we initialized them in `Self::init_geometry_view`
-        view.set_attribute(
-            mraphics_core::constant::POSITION_ATTR_LABEL,
+        // SAFETY: These storage varibales exist because we initialized them in `Self::init_geometry_view`
+        view.set_storage(
+            mraphics_core::constant::POSITION_STORAGE_LABEL,
             Vec::from(bytemuck::cast_slice::<f32, u8>(&vertices)),
         )
         .unwrap();
-        view.set_attribute(
-            mraphics_core::constant::COLOR_ATTR_LABEL,
+        view.set_storage(
+            mraphics_core::constant::COLOR_STORAGE_LABEL,
             Vec::from(bytemuck::cast_slice::<f32, u8>(&colors)),
         )
         .unwrap();

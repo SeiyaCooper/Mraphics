@@ -3,8 +3,9 @@ use crate::constant::{
 };
 use crate::{
     Camera, Color, Conveyor, ConveyorManager, GadgetData, GadgetDescriptor, GeometryIndices,
-    PipelineManager, RenderInstance,
+    PassContext, PipelineManager, RenderInstance,
 };
+use wgpu::{CommandEncoder, TextureView};
 use wgpu::{Texture, TextureFormat, util::DeviceExt};
 
 pub struct Renderer {
@@ -154,8 +155,8 @@ impl Renderer {
                 label: Some("Mraphics Command Encoder"),
             });
 
-        let mut render_pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
-            label: Some("Mraphics Render Pass"),
+        let clear_pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
+            label: Some("Mraphics Clear Pass"),
             color_attachments: &[Some(wgpu::RenderPassColorAttachment {
                 view: &view,
                 resolve_target: None,
@@ -173,6 +174,8 @@ impl Renderer {
             ..Default::default()
         });
 
+        drop(clear_pass);
+
         // SAFETY: initialized these gadgets in Renderer::new()
         self.shared_conveyor
             .update_gadget(&self.queue, VIEW_MAT_LABEL, camera.view_mat_data())
@@ -188,23 +191,22 @@ impl Renderer {
         fn render_recursive(
             this: &mut Renderer,
             texture_format: TextureFormat,
-            render_pass: &mut wgpu::RenderPass,
+            encoder: &mut CommandEncoder,
             instance: &mut RenderInstance,
+            view: &TextureView,
         ) {
             if instance.visible {
-                this.render_instance(texture_format, render_pass, instance);
+                this.render_instance(texture_format, encoder, instance, view);
             }
 
             for mut child in &mut instance.children {
-                render_recursive(this, texture_format, render_pass, &mut child);
+                render_recursive(this, texture_format, encoder, &mut child, view);
             }
         }
 
         for instance in instances {
-            render_recursive(self, texture_format, &mut render_pass, instance);
+            render_recursive(self, texture_format, &mut encoder, instance, &view);
         }
-
-        drop(render_pass);
 
         self.queue.submit(std::iter::once(encoder.finish()));
     }
@@ -216,12 +218,16 @@ impl Renderer {
     /// * `texture_format` - The format of the current render target
     /// * `render_pass` - The active render pass to record commands into
     /// * `instance` - The render instance to draw
+    /// * `clear_color` - The color used to clear the screen
+    /// * `view` - Texture view
     fn render_instance(
         &mut self,
         texture_format: TextureFormat,
-        render_pass: &mut wgpu::RenderPass,
+        encoder: &mut CommandEncoder,
         instance: &mut RenderInstance,
+        view: &TextureView,
     ) {
+        // == Transmit data to corresponding buffers ==
         let mesh_conveyor = self
             .mesh_conveyor_manager
             .acquire_conveyor(&instance.identifier);
@@ -230,7 +236,7 @@ impl Renderer {
             &self.device,
             &self.queue,
             mesh_conveyor,
-            &mut instance.geometry.attributes,
+            &mut instance.geometry.storages,
             wgpu::BufferUsages::STORAGE | wgpu::BufferUsages::COPY_DST,
             wgpu::BufferBindingType::Storage { read_only: true },
         );
@@ -252,7 +258,7 @@ impl Renderer {
             &self.device,
             &self.queue,
             material_conveyor,
-            &mut instance.material.attributes,
+            &mut instance.material.storages,
             wgpu::BufferUsages::STORAGE | wgpu::BufferUsages::COPY_DST,
             wgpu::BufferBindingType::Storage { read_only: true },
         );
@@ -266,6 +272,7 @@ impl Renderer {
             wgpu::BufferBindingType::Uniform,
         );
 
+        // == Collect bind groups ==
         let needs_update = self.shared_conveyor.needs_update
             || mesh_conveyor.needs_update
             || material_conveyor.needs_update;
@@ -298,59 +305,89 @@ impl Renderer {
             })
             .collect::<Vec<_>>();
 
-        let pipeline = self.pipeline_manager.acquire_pipeline(
-            &self.device,
-            texture_format,
-            instance,
-            &bind_group_layouts,
-            needs_update,
-        );
+        // == Walk through the render process and execute all passes ==
+        let passes = std::mem::take(&mut instance.material.render_process.passes);
+        for (pass_index, pass) in passes.iter().enumerate() {
+            match &pass.context {
+                &PassContext::Render => {
+                    let render_pipeline = self.pipeline_manager.acquire_render_pipeline(
+                        &self.device,
+                        texture_format,
+                        instance,
+                        pass,
+                        pass_index,
+                        &bind_group_layouts,
+                        needs_update,
+                    );
 
-        self.shared_conveyor.attach_bundles(render_pass);
-        mesh_conveyor.attach_bundles(render_pass);
-        material_conveyor.attach_bundles(render_pass);
-
-        render_pass.set_pipeline(pipeline);
-
-        match &mut instance.geometry.indices {
-            GeometryIndices::Sequential(indices) => {
-                render_pass.draw(0..*indices, 0..1);
-            }
-            GeometryIndices::CustomU16(indices) => {
-                if indices.buffer.is_none() {
-                    indices.buffer.replace(self.device.create_buffer_init(
-                        &wgpu::util::BufferInitDescriptor {
-                            label: Some(INDEX_BUFFER_LABEL),
-                            contents: bytemuck::cast_slice(&indices.data),
-                            usage: wgpu::BufferUsages::INDEX,
-                        },
-                    ));
-                }
-
-                // SAFETY: Checked upon
-                let buffer = indices.buffer.as_ref().unwrap();
-                render_pass.set_index_buffer(buffer.slice(..), wgpu::IndexFormat::Uint16);
-                render_pass.draw_indexed(0..(indices.data.len() as u32), 0, 0..1);
-            }
-            GeometryIndices::CustomU32(indices) => {
-                if indices.buffer.is_none() {
-                    if indices.buffer.is_none() {
-                        indices.buffer.replace(self.device.create_buffer_init(
-                            &wgpu::util::BufferInitDescriptor {
-                                label: Some(INDEX_BUFFER_LABEL),
-                                contents: bytemuck::cast_slice(&indices.data),
-                                usage: wgpu::BufferUsages::INDEX,
+                    let mut render_pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
+                        label: Some("Mraphics Render Pass"),
+                        color_attachments: &[Some(wgpu::RenderPassColorAttachment {
+                            view: &view,
+                            resolve_target: None,
+                            ops: wgpu::Operations {
+                                load: wgpu::LoadOp::Load,
+                                store: wgpu::StoreOp::Store,
                             },
-                        ));
-                    }
-                }
+                            depth_slice: None,
+                        })],
+                        ..Default::default()
+                    });
 
-                // SAFETY: Checked upon
-                let buffer = indices.buffer.as_ref().unwrap();
-                render_pass.set_index_buffer(buffer.slice(..), wgpu::IndexFormat::Uint32);
-                render_pass.draw_indexed(0..(indices.data.len() as u32), 0, 0..1);
+                    self.shared_conveyor.attach_bundles(&mut render_pass);
+                    mesh_conveyor.attach_bundles(&mut render_pass);
+                    material_conveyor.attach_bundles(&mut render_pass);
+
+                    render_pass.set_pipeline(render_pipeline);
+
+                    match &mut instance.geometry.indices {
+                        GeometryIndices::Sequential(indices) => {
+                            render_pass.draw(0..*indices, 0..1);
+                        }
+                        GeometryIndices::CustomU16(indices) => {
+                            if indices.buffer.is_none() {
+                                indices.buffer.replace(self.device.create_buffer_init(
+                                    &wgpu::util::BufferInitDescriptor {
+                                        label: Some(INDEX_BUFFER_LABEL),
+                                        contents: bytemuck::cast_slice(&indices.data),
+                                        usage: wgpu::BufferUsages::INDEX,
+                                    },
+                                ));
+                            }
+
+                            // SAFETY: Checked upon
+                            let buffer = indices.buffer.as_ref().unwrap();
+                            render_pass
+                                .set_index_buffer(buffer.slice(..), wgpu::IndexFormat::Uint16);
+                            render_pass.draw_indexed(0..(indices.data.len() as u32), 0, 0..1);
+                        }
+                        GeometryIndices::CustomU32(indices) => {
+                            if indices.buffer.is_none() {
+                                if indices.buffer.is_none() {
+                                    indices.buffer.replace(self.device.create_buffer_init(
+                                        &wgpu::util::BufferInitDescriptor {
+                                            label: Some(INDEX_BUFFER_LABEL),
+                                            contents: bytemuck::cast_slice(&indices.data),
+                                            usage: wgpu::BufferUsages::INDEX,
+                                        },
+                                    ));
+                                }
+                            }
+
+                            // SAFETY: Checked upon
+                            let buffer = indices.buffer.as_ref().unwrap();
+                            render_pass
+                                .set_index_buffer(buffer.slice(..), wgpu::IndexFormat::Uint32);
+                            render_pass.draw_indexed(0..(indices.data.len() as u32), 0, 0..1);
+                        }
+                    }
+
+                    drop(render_pass);
+                }
+                &PassContext::Compute { workgroup_size } => {}
             }
         }
+        let _ = std::mem::replace(&mut instance.material.render_process.passes, passes);
     }
 }
 

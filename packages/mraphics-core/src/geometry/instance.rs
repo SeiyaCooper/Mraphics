@@ -1,10 +1,9 @@
 use crate::{
-    GeometryView, Material, MaterialView, MraphicsID,
+    GeometryView, Material, MaterialView, MraphicsID, Pass, RenderProcess,
     constant::{MODEL_MAT_LABEL, PrimitiveTopology},
 };
 use nalgebra::{Isometry3, Matrix4, Translation3, UnitQuaternion, UnitVector3, Vector3};
 
-#[derive(Debug)]
 pub struct RenderInstance {
     pub identifier: MraphicsID,
     pub geometry: GeometryView,
@@ -22,11 +21,13 @@ pub struct RenderInstance {
 
 impl RenderInstance {
     pub fn new<M: Material>(identifier: MraphicsID, material: &M) -> Self {
+        let mut render_process = RenderProcess::new();
+        render_process.queue_pass(Pass::render(material.shader_code()));
+
         Self {
             identifier,
             geometry: GeometryView::new(),
-            material: MaterialView::new(material.identifier())
-                .with_code(material.shader_code().to_string()),
+            material: MaterialView::new(material.identifier(), render_process),
 
             children: Vec::new(),
 

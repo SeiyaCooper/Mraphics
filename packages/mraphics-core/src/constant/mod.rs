@@ -62,16 +62,16 @@ pub const MODEL_MAT_INDEX: GadgetIndex = GadgetIndex {
     binding_index: 0,
 };
 
-pub const POSITION_ATTR_LABEL: &'static str = "mraphics-position-attribute";
-pub const POSITION_ATTR_INDEX: GadgetIndex = GadgetIndex {
+pub const POSITION_STORAGE_LABEL: &'static str = "mraphics-position-storage";
+pub const POSITION_STORAGE_INDEX: GadgetIndex = GadgetIndex {
     group_index: 1,
     binding_index: 1,
 };
 
 pub const INDEX_BUFFER_LABEL: &'static str = "mraphics-index-buffer";
 
-pub const COLOR_ATTR_LABEL: &'static str = "mraphics-color-attribute";
-pub const COLOR_ATTR_INDEX: GadgetIndex = GadgetIndex {
+pub const COLOR_STORAGE_LABEL: &'static str = "mraphics-color-storage";
+pub const COLOR_STORAGE_INDEX: GadgetIndex = GadgetIndex {
     group_index: 1,
     binding_index: 2,
 };
