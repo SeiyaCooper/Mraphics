@@ -1,3 +1,5 @@
+use wgpu::ComputePipelineDescriptor;
+
 use crate::{Pass, RenderInstance, constant::PrimitiveTopology};
 use std::collections::HashMap;
 
@@ -57,7 +59,7 @@ impl PipelineManager {
     ) {
         self.render_pipelines.insert(
             String::from(pipeline_identifier),
-            PipelineManager::build_pipeline(
+            PipelineManager::build_render_pipeline(
                 device,
                 texture_format,
                 render_pass,
@@ -67,7 +69,7 @@ impl PipelineManager {
         );
     }
 
-    pub fn build_pipeline(
+    pub fn build_render_pipeline(
         device: &wgpu::Device,
         texture_format: wgpu::TextureFormat,
         render_pass: &Pass,
@@ -117,6 +119,70 @@ impl PipelineManager {
             depth_stencil: None,
             multisample: wgpu::MultisampleState::default(),
             multiview: None,
+            cache: None,
+        })
+    }
+
+    pub fn acquire_compute_pipeline(
+        &mut self,
+        device: &wgpu::Device,
+        instance: &RenderInstance,
+        compute_pass: &Pass,
+        pass_index: usize,
+        bind_groups: &[&wgpu::BindGroupLayout],
+        force_update: bool,
+    ) -> &wgpu::ComputePipeline {
+        let pipeline_identifier = format!(
+            "{}{}{}",
+            &instance.material.identifier,
+            instance.topology.to_str(),
+            pass_index
+        );
+
+        if !self.render_pipelines.contains_key(&pipeline_identifier) || force_update {
+            self.insert_compute_pipeline(device, compute_pass, bind_groups, &pipeline_identifier);
+        }
+
+        // SAFETY: Checked upon
+        &self.compute_pipelines.get(&pipeline_identifier).unwrap()
+    }
+
+    pub fn insert_compute_pipeline(
+        &mut self,
+        device: &wgpu::Device,
+        compute_pass: &Pass,
+        bind_groups: &[&wgpu::BindGroupLayout],
+        pipeline_identifier: &String,
+    ) {
+        self.compute_pipelines.insert(
+            String::from(pipeline_identifier),
+            PipelineManager::build_compute_pipeline(device, compute_pass, bind_groups),
+        );
+    }
+
+    pub fn build_compute_pipeline(
+        device: &wgpu::Device,
+        compute_pass: &Pass,
+        bind_groups: &[&wgpu::BindGroupLayout],
+    ) -> wgpu::ComputePipeline {
+        let shader_module = device.create_shader_module(wgpu::ShaderModuleDescriptor {
+            label: Some("Mraphics Compute Shader"),
+            source: wgpu::ShaderSource::Wgsl((&compute_pass.shader_code).into()),
+        });
+
+        let compute_pipeline_layout =
+            device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
+                label: Some("Mraphics Compute Pipeline Layout"),
+                bind_group_layouts: bind_groups,
+                push_constant_ranges: &[],
+            });
+
+        device.create_compute_pipeline(&ComputePipelineDescriptor {
+            label: Some("Mraphics Compute Pipeline"),
+            layout: Some(&compute_pipeline_layout),
+            module: &shader_module,
+            entry_point: Some("main"),
+            compilation_options: Default::default(),
             cache: None,
         })
     }

@@ -1,4 +1,4 @@
-use mraphics_core::Material;
+use mraphics_core::{Material, MaterialView, Pass};
 
 /// Material used for rendering [`Mobject2DStroke`] objects.
 ///
@@ -19,7 +19,8 @@ impl Material for Mobject2DMaterial {
         "Mraphics Mobject2D Material"
     }
 
-    fn shader_code(&self) -> &str {
-        include_str!("shaders/mobject_2d.wgsl")
+    fn init_view(&self, view: &mut MaterialView) {
+        view.render_process
+            .queue_pass(Pass::render(include_str!("shaders/mobject_2d.wgsl")));
     }
 }

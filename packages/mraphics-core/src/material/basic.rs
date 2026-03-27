@@ -1,4 +1,4 @@
-use crate::{Color, GadgetData, GadgetIndex, Material};
+use crate::{Color, GadgetData, GadgetIndex, Material, Pass};
 
 const COLOR_UNIFORM_LABEL: &'static str = "mraphics-color-uniform";
 const COLOR_UNIFORM_INDEX: GadgetIndex = GadgetIndex {
@@ -29,8 +29,9 @@ impl Material for BasicMaterial {
         "Mraphics Basic Materil"
     }
 
-    fn shader_code(&self) -> &str {
-        include_str!("shaders/basic.wgsl")
+    fn init_view(&self, view: &mut super::MaterialView) {
+        view.render_process
+            .queue_pass(Pass::render(include_str!("shaders/basic.wgsl")));
     }
 
     fn update_view(&self, view: &mut super::MaterialView) {

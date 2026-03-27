@@ -167,10 +167,18 @@ impl Conveyor {
         }
     }
 
-    pub fn attach_bundles(&self, render_pass: &mut wgpu::RenderPass) {
+    pub fn attach_render_bundles(&self, render_pass: &mut wgpu::RenderPass) {
         for (index, maybe_bundle) in self.bundles.iter().enumerate() {
             if let Some(bundle) = maybe_bundle {
                 render_pass.set_bind_group(index as u32, &bundle.bind_group, &[]);
+            }
+        }
+    }
+
+    pub fn attach_compute_bundles(&self, compute_pass: &mut wgpu::ComputePass) {
+        for (index, maybe_bundle) in self.bundles.iter().enumerate() {
+            if let Some(bundle) = maybe_bundle {
+                compute_pass.set_bind_group(index as u32, &bundle.bind_group, &[]);
             }
         }
     }

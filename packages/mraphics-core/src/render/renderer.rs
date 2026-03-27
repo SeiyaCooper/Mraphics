@@ -5,7 +5,7 @@ use crate::{
     Camera, Color, Conveyor, ConveyorManager, GadgetData, GadgetDescriptor, GeometryIndices,
     PassContext, PipelineManager, RenderInstance,
 };
-use wgpu::{CommandEncoder, TextureView};
+use wgpu::{CommandEncoder, ComputePassDescriptor, TextureView};
 use wgpu::{Texture, TextureFormat, util::DeviceExt};
 
 pub struct Renderer {
@@ -334,9 +334,9 @@ impl Renderer {
                         ..Default::default()
                     });
 
-                    self.shared_conveyor.attach_bundles(&mut render_pass);
-                    mesh_conveyor.attach_bundles(&mut render_pass);
-                    material_conveyor.attach_bundles(&mut render_pass);
+                    self.shared_conveyor.attach_render_bundles(&mut render_pass);
+                    mesh_conveyor.attach_render_bundles(&mut render_pass);
+                    material_conveyor.attach_render_bundles(&mut render_pass);
 
                     render_pass.set_pipeline(render_pipeline);
 
@@ -384,7 +384,32 @@ impl Renderer {
 
                     drop(render_pass);
                 }
-                &PassContext::Compute { workgroup_size } => {}
+                &PassContext::Compute {
+                    workgroup_size: (x, y, z),
+                } => {
+                    let compute_pipeline = self.pipeline_manager.acquire_compute_pipeline(
+                        &self.device,
+                        instance,
+                        pass,
+                        pass_index,
+                        &bind_group_layouts,
+                        needs_update,
+                    );
+
+                    let mut compute_pass = encoder.begin_compute_pass(&ComputePassDescriptor {
+                        label: Some("Mraphics Compute Pass"),
+                        timestamp_writes: None,
+                    });
+
+                    self.shared_conveyor
+                        .attach_compute_bundles(&mut compute_pass);
+                    mesh_conveyor.attach_compute_bundles(&mut compute_pass);
+                    material_conveyor.attach_compute_bundles(&mut compute_pass);
+
+                    compute_pass.set_pipeline(compute_pipeline);
+
+                    compute_pass.dispatch_workgroups(x, y, z);
+                }
             }
         }
         let _ = std::mem::replace(&mut instance.material.render_process.passes, passes);

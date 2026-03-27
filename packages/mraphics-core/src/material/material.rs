@@ -49,7 +49,7 @@ impl Default for MaterialView {
 
 pub trait Material: Clone {
     fn identifier(&self) -> &str;
-    fn shader_code(&self) -> &str;
+    fn init_view(&self, view: &mut MaterialView);
     fn update_view(&self, view: &mut MaterialView) {
         let _ = view;
     }

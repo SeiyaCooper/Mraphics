@@ -484,6 +484,9 @@ impl MeshLike for Mobject2D {
         self.fill.init_geometry_view(&mut instance.geometry);
         self.stroke.init_geometry_view(&mut stroke.geometry);
 
+        self.fill.material.init_view(&mut instance.material);
+        self.stroke.material.init_view(&mut stroke.material);
+
         self.fill.material.update_view(&mut instance.material);
         self.stroke.material.update_view(&mut stroke.material);
 

@@ -1,4 +1,4 @@
-use crate::Material;
+use crate::{Material, Pass};
 
 #[derive(Clone)]
 pub struct MultiColoredMaterial {}
@@ -14,7 +14,8 @@ impl Material for MultiColoredMaterial {
         "Mraphics Multi-colored Material"
     }
 
-    fn shader_code(&self) -> &str {
-        include_str!("shaders/multi_colored.wgsl")
+    fn init_view(&self, view: &mut super::MaterialView) {
+        view.render_process
+            .queue_pass(Pass::render(include_str!("shaders/multi_colored.wgsl")));
     }
 }
