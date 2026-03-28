@@ -1,9 +1,9 @@
 use std::collections::HashMap;
 
 #[derive(Debug)]
-struct Gadget {
+pub struct Gadget {
+    pub ty: wgpu::BufferBindingType,
     buffer: wgpu::Buffer,
-    ty: wgpu::BufferBindingType,
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -91,6 +91,12 @@ impl Conveyor {
         self.needs_update = true;
     }
 
+    pub fn acquire_gadget_mut(&mut self, label: &str) -> Result<&mut Gadget, ConveyorError> {
+        self.gadgets
+            .get_mut(label)
+            .ok_or(ConveyorError::UnknownGadgetLabel)
+    }
+
     pub fn update_gadget(
         &mut self,
         queue: &wgpu::Queue,
@@ -107,7 +113,7 @@ impl Conveyor {
         Ok(())
     }
 
-    pub fn update_bundles(&mut self, device: &wgpu::Device) {
+    pub fn update_bundles(&mut self, device: &wgpu::Device, visibility: wgpu::ShaderStages) {
         self.bundles = Vec::new();
 
         for (group_index, group_desc) in self.indices.iter().enumerate() {
@@ -126,7 +132,7 @@ impl Conveyor {
 
                 bind_group_layout_entries.push(wgpu::BindGroupLayoutEntry {
                     binding: *binding_index,
-                    visibility: wgpu::ShaderStages::all(), // Hard coded currently
+                    visibility,
                     ty: wgpu::BindingType::Buffer {
                         ty: gadget.ty,
                         has_dynamic_offset: false,

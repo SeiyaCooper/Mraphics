@@ -2,11 +2,12 @@ use crate::constant::{
     INDEX_BUFFER_LABEL, PROJECTION_MAT_INDEX, PROJECTION_MAT_LABEL, VIEW_MAT_INDEX, VIEW_MAT_LABEL,
 };
 use crate::{
-    Camera, Color, Conveyor, ConveyorManager, GadgetData, GadgetDescriptor, GeometryIndices,
+    Camera, Color, Conveyor, ConveyorManager, GadgetData, GadgetDescriptor, GeometryIndices, Pass,
     PassContext, PipelineManager, RenderInstance,
 };
-use wgpu::{CommandEncoder, ComputePassDescriptor, TextureView};
-use wgpu::{Texture, TextureFormat, util::DeviceExt};
+use wgpu::{
+    CommandEncoder, ComputePassDescriptor, Texture, TextureFormat, TextureView, util::DeviceExt,
+};
 
 pub struct Renderer {
     pub device: wgpu::Device,
@@ -227,59 +228,59 @@ impl Renderer {
         instance: &mut RenderInstance,
         view: &TextureView,
     ) {
+        // == Walk through the render process and execute all passes ==
+        let passes = std::mem::take(&mut instance.material.render_process.passes);
+        for (pass_index, pass) in passes.iter().enumerate() {
+            match &pass.context {
+                &PassContext::Render => {
+                    self.execute_render_pass(
+                        texture_format,
+                        encoder,
+                        instance,
+                        view,
+                        pass,
+                        pass_index,
+                    );
+                }
+                &PassContext::Compute { workgroup_size } => {
+                    self.execute_compute_pass(encoder, instance, pass, pass_index, workgroup_size);
+                }
+            }
+        }
+        let _ = std::mem::replace(&mut instance.material.render_process.passes, passes);
+    }
+
+    fn execute_render_pass(
+        &mut self,
+        texture_format: TextureFormat,
+        encoder: &mut CommandEncoder,
+        instance: &mut RenderInstance,
+        view: &TextureView,
+        pass: &Pass,
+        pass_index: usize,
+    ) {
         // == Transmit data to corresponding buffers ==
+        self.update_gadgets(
+            instance, true, /* Storage buffers are read only to vertex shaders */
+        );
+
+        // == Collect bind groups ==
         let mesh_conveyor = self
             .mesh_conveyor_manager
             .acquire_conveyor(&instance.identifier);
-
-        update_gadgets(
-            &self.device,
-            &self.queue,
-            mesh_conveyor,
-            &mut instance.geometry.storages,
-            wgpu::BufferUsages::STORAGE | wgpu::BufferUsages::COPY_DST,
-            wgpu::BufferBindingType::Storage { read_only: true },
-        );
-
-        update_gadgets(
-            &self.device,
-            &self.queue,
-            mesh_conveyor,
-            &mut instance.geometry.uniforms,
-            wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
-            wgpu::BufferBindingType::Uniform,
-        );
-
         let material_conveyor = self
             .material_conveyor_manager
             .acquire_conveyor(&(instance.identifier.to_string() + &instance.material.identifier));
 
-        update_gadgets(
-            &self.device,
-            &self.queue,
-            material_conveyor,
-            &mut instance.material.storages,
-            wgpu::BufferUsages::STORAGE | wgpu::BufferUsages::COPY_DST,
-            wgpu::BufferBindingType::Storage { read_only: true },
-        );
-
-        update_gadgets(
-            &self.device,
-            &self.queue,
-            material_conveyor,
-            &mut instance.material.uniforms,
-            wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
-            wgpu::BufferBindingType::Uniform,
-        );
-
-        // == Collect bind groups ==
         let needs_update = self.shared_conveyor.needs_update
             || mesh_conveyor.needs_update
             || material_conveyor.needs_update;
         if needs_update {
-            self.shared_conveyor.update_bundles(&self.device);
-            mesh_conveyor.update_bundles(&self.device);
-            material_conveyor.update_bundles(&self.device);
+            let visibility = wgpu::ShaderStages::VERTEX_FRAGMENT;
+            self.shared_conveyor
+                .update_bundles(&self.device, visibility);
+            mesh_conveyor.update_bundles(&self.device, visibility);
+            material_conveyor.update_bundles(&self.device, visibility);
         }
 
         let maybe_bind_group_layouts = Conveyor::collect_bind_group_layouts(vec![
@@ -305,114 +306,201 @@ impl Renderer {
             })
             .collect::<Vec<_>>();
 
-        // == Walk through the render process and execute all passes ==
-        let passes = std::mem::take(&mut instance.material.render_process.passes);
-        for (pass_index, pass) in passes.iter().enumerate() {
-            match &pass.context {
-                &PassContext::Render => {
-                    let render_pipeline = self.pipeline_manager.acquire_render_pipeline(
-                        &self.device,
-                        texture_format,
-                        instance,
-                        pass,
-                        pass_index,
-                        &bind_group_layouts,
-                        needs_update,
-                    );
+        // == Create render pass and execute it ==
+        let render_pipeline = self.pipeline_manager.acquire_render_pipeline(
+            &self.device,
+            texture_format,
+            instance,
+            pass,
+            pass_index,
+            &bind_group_layouts,
+            needs_update,
+        );
 
-                    let mut render_pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
-                        label: Some("Mraphics Render Pass"),
-                        color_attachments: &[Some(wgpu::RenderPassColorAttachment {
-                            view: &view,
-                            resolve_target: None,
-                            ops: wgpu::Operations {
-                                load: wgpu::LoadOp::Load,
-                                store: wgpu::StoreOp::Store,
+        let mut render_pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
+            label: Some("Mraphics Render Pass"),
+            color_attachments: &[Some(wgpu::RenderPassColorAttachment {
+                view: &view,
+                resolve_target: None,
+                ops: wgpu::Operations {
+                    load: wgpu::LoadOp::Load,
+                    store: wgpu::StoreOp::Store,
+                },
+                depth_slice: None,
+            })],
+            ..Default::default()
+        });
+
+        self.shared_conveyor.attach_render_bundles(&mut render_pass);
+        mesh_conveyor.attach_render_bundles(&mut render_pass);
+        material_conveyor.attach_render_bundles(&mut render_pass);
+
+        render_pass.set_pipeline(render_pipeline);
+
+        match &mut instance.geometry.indices {
+            GeometryIndices::Sequential(indices) => {
+                render_pass.draw(0..*indices, 0..1);
+            }
+            GeometryIndices::CustomU16(indices) => {
+                if indices.buffer.is_none() {
+                    indices.buffer.replace(self.device.create_buffer_init(
+                        &wgpu::util::BufferInitDescriptor {
+                            label: Some(INDEX_BUFFER_LABEL),
+                            contents: bytemuck::cast_slice(&indices.data),
+                            usage: wgpu::BufferUsages::INDEX,
+                        },
+                    ));
+                }
+
+                // SAFETY: Checked upon
+                let buffer = indices.buffer.as_ref().unwrap();
+                render_pass.set_index_buffer(buffer.slice(..), wgpu::IndexFormat::Uint16);
+                render_pass.draw_indexed(0..(indices.data.len() as u32), 0, 0..1);
+            }
+            GeometryIndices::CustomU32(indices) => {
+                if indices.buffer.is_none() {
+                    if indices.buffer.is_none() {
+                        indices.buffer.replace(self.device.create_buffer_init(
+                            &wgpu::util::BufferInitDescriptor {
+                                label: Some(INDEX_BUFFER_LABEL),
+                                contents: bytemuck::cast_slice(&indices.data),
+                                usage: wgpu::BufferUsages::INDEX,
                             },
-                            depth_slice: None,
-                        })],
-                        ..Default::default()
-                    });
-
-                    self.shared_conveyor.attach_render_bundles(&mut render_pass);
-                    mesh_conveyor.attach_render_bundles(&mut render_pass);
-                    material_conveyor.attach_render_bundles(&mut render_pass);
-
-                    render_pass.set_pipeline(render_pipeline);
-
-                    match &mut instance.geometry.indices {
-                        GeometryIndices::Sequential(indices) => {
-                            render_pass.draw(0..*indices, 0..1);
-                        }
-                        GeometryIndices::CustomU16(indices) => {
-                            if indices.buffer.is_none() {
-                                indices.buffer.replace(self.device.create_buffer_init(
-                                    &wgpu::util::BufferInitDescriptor {
-                                        label: Some(INDEX_BUFFER_LABEL),
-                                        contents: bytemuck::cast_slice(&indices.data),
-                                        usage: wgpu::BufferUsages::INDEX,
-                                    },
-                                ));
-                            }
-
-                            // SAFETY: Checked upon
-                            let buffer = indices.buffer.as_ref().unwrap();
-                            render_pass
-                                .set_index_buffer(buffer.slice(..), wgpu::IndexFormat::Uint16);
-                            render_pass.draw_indexed(0..(indices.data.len() as u32), 0, 0..1);
-                        }
-                        GeometryIndices::CustomU32(indices) => {
-                            if indices.buffer.is_none() {
-                                if indices.buffer.is_none() {
-                                    indices.buffer.replace(self.device.create_buffer_init(
-                                        &wgpu::util::BufferInitDescriptor {
-                                            label: Some(INDEX_BUFFER_LABEL),
-                                            contents: bytemuck::cast_slice(&indices.data),
-                                            usage: wgpu::BufferUsages::INDEX,
-                                        },
-                                    ));
-                                }
-                            }
-
-                            // SAFETY: Checked upon
-                            let buffer = indices.buffer.as_ref().unwrap();
-                            render_pass
-                                .set_index_buffer(buffer.slice(..), wgpu::IndexFormat::Uint32);
-                            render_pass.draw_indexed(0..(indices.data.len() as u32), 0, 0..1);
-                        }
+                        ));
                     }
-
-                    drop(render_pass);
                 }
-                &PassContext::Compute {
-                    workgroup_size: (x, y, z),
-                } => {
-                    let compute_pipeline = self.pipeline_manager.acquire_compute_pipeline(
-                        &self.device,
-                        instance,
-                        pass,
-                        pass_index,
-                        &bind_group_layouts,
-                        needs_update,
-                    );
 
-                    let mut compute_pass = encoder.begin_compute_pass(&ComputePassDescriptor {
-                        label: Some("Mraphics Compute Pass"),
-                        timestamp_writes: None,
-                    });
-
-                    self.shared_conveyor
-                        .attach_compute_bundles(&mut compute_pass);
-                    mesh_conveyor.attach_compute_bundles(&mut compute_pass);
-                    material_conveyor.attach_compute_bundles(&mut compute_pass);
-
-                    compute_pass.set_pipeline(compute_pipeline);
-
-                    compute_pass.dispatch_workgroups(x, y, z);
-                }
+                // SAFETY: Checked upon
+                let buffer = indices.buffer.as_ref().unwrap();
+                render_pass.set_index_buffer(buffer.slice(..), wgpu::IndexFormat::Uint32);
+                render_pass.draw_indexed(0..(indices.data.len() as u32), 0, 0..1);
             }
         }
-        let _ = std::mem::replace(&mut instance.material.render_process.passes, passes);
+    }
+
+    fn execute_compute_pass(
+        &mut self,
+        encoder: &mut CommandEncoder,
+        instance: &mut RenderInstance,
+        pass: &Pass,
+        pass_index: usize,
+        workgroup_size: (u32, u32, u32),
+    ) {
+        // == Transmit data to corresponding buffers ==
+        self.update_gadgets(
+            instance, false, /* Storage buffers are writable to vertex shaders */
+        );
+
+        // == Collect bind groups ==
+        let mesh_conveyor = self
+            .mesh_conveyor_manager
+            .acquire_conveyor(&instance.identifier);
+        let material_conveyor = self
+            .material_conveyor_manager
+            .acquire_conveyor(&(instance.identifier.to_string() + &instance.material.identifier));
+
+        let needs_update = self.shared_conveyor.needs_update
+            || mesh_conveyor.needs_update
+            || material_conveyor.needs_update;
+        if needs_update {
+            let visibility = wgpu::ShaderStages::COMPUTE;
+            self.shared_conveyor
+                .update_bundles(&self.device, visibility);
+            mesh_conveyor.update_bundles(&self.device, visibility);
+            material_conveyor.update_bundles(&self.device, visibility);
+        }
+
+        let maybe_bind_group_layouts = Conveyor::collect_bind_group_layouts(vec![
+            &self.shared_conveyor.bundles,
+            &mesh_conveyor.bundles,
+            &material_conveyor.bundles,
+        ]);
+        let bind_group_placeholder = if maybe_bind_group_layouts.contains(&None) {
+            Some(
+                self.device
+                    .create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
+                        label: Some(&format!("Mraphics bind group layout placeholder",)),
+                        entries: &[],
+                    }),
+            )
+        } else {
+            None
+        };
+        let bind_group_layouts = maybe_bind_group_layouts
+            .iter()
+            .map(|bind_group| {
+                bind_group.unwrap_or_else(|| bind_group_placeholder.as_ref().unwrap())
+            })
+            .collect::<Vec<_>>();
+
+        let compute_pipeline = self.pipeline_manager.acquire_compute_pipeline(
+            &self.device,
+            instance,
+            pass,
+            pass_index,
+            &bind_group_layouts,
+            needs_update,
+        );
+
+        let mut compute_pass = encoder.begin_compute_pass(&ComputePassDescriptor {
+            label: Some("Mraphics Compute Pass"),
+            timestamp_writes: None,
+        });
+
+        self.shared_conveyor
+            .attach_compute_bundles(&mut compute_pass);
+        mesh_conveyor.attach_compute_bundles(&mut compute_pass);
+        material_conveyor.attach_compute_bundles(&mut compute_pass);
+
+        compute_pass.set_pipeline(compute_pipeline);
+
+        compute_pass.dispatch_workgroups(workgroup_size.0, workgroup_size.1, workgroup_size.2);
+    }
+
+    fn update_gadgets(&mut self, instance: &mut RenderInstance, read_only: bool) {
+        let mesh_conveyor = self
+            .mesh_conveyor_manager
+            .acquire_conveyor(&instance.identifier);
+
+        update_gadgets(
+            &self.device,
+            &self.queue,
+            mesh_conveyor,
+            &mut instance.geometry.storages,
+            wgpu::BufferUsages::STORAGE | wgpu::BufferUsages::COPY_DST,
+            wgpu::BufferBindingType::Storage { read_only },
+        );
+
+        update_gadgets(
+            &self.device,
+            &self.queue,
+            mesh_conveyor,
+            &mut instance.geometry.uniforms,
+            wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
+            wgpu::BufferBindingType::Uniform,
+        );
+
+        let material_conveyor = self
+            .material_conveyor_manager
+            .acquire_conveyor(&(instance.identifier.to_string() + &instance.material.identifier));
+
+        update_gadgets(
+            &self.device,
+            &self.queue,
+            material_conveyor,
+            &mut instance.material.storages,
+            wgpu::BufferUsages::STORAGE | wgpu::BufferUsages::COPY_DST,
+            wgpu::BufferBindingType::Storage { read_only },
+        );
+
+        update_gadgets(
+            &self.device,
+            &self.queue,
+            material_conveyor,
+            &mut instance.material.uniforms,
+            wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
+            wgpu::BufferBindingType::Uniform,
+        );
     }
 }
 
@@ -451,6 +539,17 @@ fn update_gadget(
 
         data.needs_update_buffer = false;
     }
+
+    // Set buffer type, which differs between render and compute passes:
+    // - Render pass:  storage variables are read-only
+    // - Compute pass: storage variables are writable
+    //
+    // SAFETY: `data.needs_update_buffer` is `true` when the gadget is uninitialized,
+    // since we already checked it above, the gadget should have been initialized and `.unwrap()` is safe.
+    if conveyor.acquire_gadget_mut(&data.label).unwrap().ty != ty {
+        conveyor.acquire_gadget_mut(&data.label).unwrap().ty = ty;
+        conveyor.needs_update = true;
+    };
 
     if !data.needs_update_value {
         return;
