@@ -139,7 +139,7 @@ impl PipelineManager {
             pass_index
         );
 
-        if !self.render_pipelines.contains_key(&pipeline_identifier) || force_update {
+        if !self.compute_pipelines.contains_key(&pipeline_identifier) || force_update {
             self.insert_compute_pipeline(device, compute_pass, bind_groups, &pipeline_identifier);
         }
 

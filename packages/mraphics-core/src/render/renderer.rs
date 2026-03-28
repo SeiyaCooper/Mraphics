@@ -359,15 +359,13 @@ impl Renderer {
             }
             GeometryIndices::CustomU32(indices) => {
                 if indices.buffer.is_none() {
-                    if indices.buffer.is_none() {
-                        indices.buffer.replace(self.device.create_buffer_init(
-                            &wgpu::util::BufferInitDescriptor {
-                                label: Some(INDEX_BUFFER_LABEL),
-                                contents: bytemuck::cast_slice(&indices.data),
-                                usage: wgpu::BufferUsages::INDEX,
-                            },
-                        ));
-                    }
+                    indices.buffer.replace(self.device.create_buffer_init(
+                        &wgpu::util::BufferInitDescriptor {
+                            label: Some(INDEX_BUFFER_LABEL),
+                            contents: bytemuck::cast_slice(&indices.data),
+                            usage: wgpu::BufferUsages::INDEX,
+                        },
+                    ));
                 }
 
                 // SAFETY: Checked upon
@@ -388,7 +386,8 @@ impl Renderer {
     ) {
         // == Transmit data to corresponding buffers ==
         self.update_gadgets(
-            instance, false, /* Storage buffers are writable to vertex shaders */
+            instance, false,
+            /* Storage buffers are writable to compute shaders */
         );
 
         // == Collect bind groups ==
